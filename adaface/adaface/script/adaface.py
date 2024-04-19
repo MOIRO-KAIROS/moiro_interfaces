@@ -13,6 +13,16 @@ sys_path = '/home/minha/moiro_ws/src/faceROS2/adaface/adaface/script/'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_grad_enabled(False) # for 메모리
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--mode', type=int, default=1, help='0: 임베딩 저장 1: webcam/video으로 run_video)')
+parser.add_argument('--video', type=int, default=0, help='0: webcam 또는 "video/iAM.mp4" 특정 비디오 path 경로')
+parser.add_argument('--fr_weight', type=str, default='ir_50', help='face recognition weight')
+parser.add_argument('--thresh', nargs='+', type=str, default=.2, help='unknown confidence < .2')
+parser.add_argument('--max_obj', type=int, default=6, help='detect 가능한 최대 얼굴의 개수')
+parser.add_argument('--dataset', type=str, default='face_dataset/test', help='face dataset의 경로 (known face dataset)')
+
+opt = parser.parse_args()
+
 adaface_models = {
     'ir_50': os.path.join(sys_path, "pretrained/adaface_ir50_ms1mv2.ckpt"),
 }
@@ -81,7 +91,7 @@ def store_embedding(opt):
     print(f"얼굴 임베딩 벡터 저장 완료(known face 개수: {len(ids)})")
     return features, ids
 
-def inference(opt, frame):
+def inference(frame):
     pil_im = Image.fromarray(frame).convert('RGB')
     face_encodings = []
 
