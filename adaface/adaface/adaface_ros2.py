@@ -29,11 +29,21 @@ class Adaface(Node):
     self.cv_bridge = CvBridge()
     
      # params
-    self.declare_parameter("image_reliability",
-                            QoSReliabilityPolicy.BEST_EFFORT)
+    # self.declare_parameter("input_image_topic", "/camera/camera/color/image_raw")
+    # self.input_image_topic = self.get_parameter(
+    #         "input_image_topic").get_parameter_value().string_value
+    
+    # self.declare_parameter("image_reliability",
+    #                         QoSReliabilityPolicy.BEST_EFFORT)
+    # image_qos_profile = QoSProfile(
+    #     reliability=self.get_parameter(
+    #         "image_reliability").get_parameter_value().integer_value,
+    #     history=QoSHistoryPolicy.KEEP_LAST,
+    #     durability=QoSDurabilityPolicy.VOLATILE,
+    #     depth=1
+    # )
     image_qos_profile = QoSProfile(
-        reliability=self.get_parameter(
-            "image_reliability").get_parameter_value().integer_value,
+        reliability=2,
         history=QoSHistoryPolicy.KEEP_LAST,
         durability=QoSDurabilityPolicy.VOLATILE,
         depth=1
@@ -45,9 +55,9 @@ class Adaface(Node):
     ## subs
     # 이미지와 message를 subscribe
     tracking_sub = message_filters.Subscriber(
-        self, DetectionArray, "tracking", qos_profile =10)
+        self, DetectionArray, "/yolo/tracking", qos_profile =10)
     image_sub = message_filters.Subscriber(
-        self, Image, "image_raw", qos_profile=image_qos_profile)
+        self, Image, "/camera/camera/color/image_raw", qos_profile=image_qos_profile)
 
     
     # 이미지와 message를 동기화
