@@ -14,16 +14,13 @@
   <depend>torch</depend>
   <depend>net</depend>
   <depend>os</depend> -->
-  <depend>sensor_msgs</depend>
   <depend>rclpy</depend>
   <depend>adaface_interfaces</depend>
   <depend>yolov8_msgs</depend>
-  
+  <depend>yolov8_ros</depend>
 
-  <depend>std_srvs</depend>
   <depend>sensor_msgs</depend>
   <depend>cv_bridge</depend>
-
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

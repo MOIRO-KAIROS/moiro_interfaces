@@ -14,7 +14,7 @@ def generate_launch_description():
     return LaunchDescription(
         [
             ExecuteProcess(
-                cmd=["ros2", "run", "face_recognition"], output="screen"
+                cmd=["ros2", "run", "adaface","face_recognition"], output="screen"
             ),
         ]
     )

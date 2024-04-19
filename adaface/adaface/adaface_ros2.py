@@ -1,5 +1,3 @@
-from adaface.script.adaface import *
-
 import rclpy
 from rclpy.node import Node
 from rclpy.duration import Duration
@@ -11,14 +9,14 @@ from rclpy.qos import QoSReliabilityPolicy
 import message_filters
 from cv_bridge import CvBridge
 
-from adaface_interfaces.msg import AdafaceMsg
-
 from sensor_msgs.msg import Image
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 
 from yolov8_msgs.msg import Detection
 from yolov8_msgs.msg import DetectionArray
+
+from .script.adaface import *
 '''
 This Node publish data to ~yolov8_debug_node~
 '''
@@ -43,9 +41,8 @@ class Adaface(Node):
     )
 
     #pubs
-    self._adaface_pub = self.create_publisher(AdafaceMsg, 'adaface_msg',10)
+    self._adaface_pub = self.create_publisher(DetectionArray, 'adaface_msg',10)
 
-    
     ## subs
     # 이미지와 message를 subscribe
     image_sub = message_filters.Subscriber(
@@ -78,13 +75,23 @@ class Adaface(Node):
           x2 = face_id_msg.bbox.center.position.x + face_id_msg.bbox.size.x / 2
           y2 = face_id_msg.bbox.center.position.y + face_id_msg.bbox.size.y / 2
           
-          score = face_id_msg.score
-          class_id = face_id_msg.class_id
+          # score = face_id_msg.score
+          # class_id = face_id_msg.class_id
 
           face_box, face_names = inference(cv_image[y1:y2,x1:x2])
-          
+
+          # Assume that one person box = one face
+          face_id_msg.bbox.center.position.x = x1 + (face_box[0][2] + face_box[0][0])/2
+          face_id_msg.bbox.size.x = face_box[0][2]- face_box[0][0]
+          face_id_msg.bbox.center.position.y = y1 + (face_box[0][3] + face_box[0][1])/2
+          face_id_msg.bbox.size.y = face_box[0][3]- face_box[0][1]
+          face_id_msg.id = face_names
+
+          face_ids_for_frame.detection.append(face_id_msg)
+
         # publish face information (id,bbox)
-        self._adaface_pub.publish(face_id_msg)
+        self.get_logger().info('size [ x : {}, y : {}], face info [{}]'.format(face_id_msg.bbox.size.x ,face_id_msg.bbox.size.y,face_names)) # For Debugging
+        self._adaface_pub.publish(face_ids_for_frame)
 
 def main(args=None): 
   rclpy.init(args=None)

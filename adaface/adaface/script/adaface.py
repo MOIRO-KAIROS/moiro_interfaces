@@ -1,7 +1,7 @@
-import net
+from .net import *
 import torch
 import os
-from face_alignment import align
+from .face_alignment import align
 import numpy as np
 import cv2
 from PIL import Image
@@ -9,7 +9,7 @@ import argparse
 import sys
 import time
 
-sys_path = os.path.dirname(__file__)
+sys_path = '/home/minha/moiro_ws/src/faceROS2/adaface/adaface/script/'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.set_grad_enabled(False) # for 메모리
 
@@ -20,7 +20,7 @@ adaface_models = {
 def load_pretrained_model(architecture='ir_50'):
     # load model and pretrained statedict
     assert architecture in adaface_models.keys()
-    model = net.build_model(architecture)
+    model = build_model(architecture)
     statedict = torch.load(adaface_models[architecture])['state_dict']
     model_statedict = {key[6:]:val for key, val in statedict.items() if key.startswith('model.')}
     model.load_state_dict(model_statedict)
