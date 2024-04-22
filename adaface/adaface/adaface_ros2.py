@@ -15,6 +15,7 @@ from sensor_msgs.msg._image import Image
 # from visualization_msgs.msg import Marker
 # from visualization_msgs.msg import MarkerArray
 
+import numpy as np
 import sys
 sys.path.append("/home/lee52/ros2_ws/src/minhaROS/adaface/adaface/script")
 # /home/minha/moiro_ws/src/faceROS2/adaface/adaface/adaface_ros2.py
@@ -112,10 +113,10 @@ class Adaface(Node):
         for face_id_msg in tracking_msg.detections:
           
           # 객체 이미지 위치 잡고 그걸 inference로 보낸다
-          x1 = int(face_id_msg.bbox.center.position.x - face_id_msg.bbox.size.x / 2)
-          y1 = int(face_id_msg.bbox.center.position.y - face_id_msg.bbox.size.y / 2)
-          x2 = int(face_id_msg.bbox.center.position.x + face_id_msg.bbox.size.x / 2)
-          y2 = int(face_id_msg.bbox.center.position.y + face_id_msg.bbox.size.y / 2)
+          x1 = np.clip(int(face_id_msg.bbox.center.position.x - face_id_msg.bbox.size.x / 2), 0, img_msg.width) # img_msg.width = 640 # ? 설정 시: 640 - 1
+          y1 = np.clip(int(face_id_msg.bbox.center.position.y - face_id_msg.bbox.size.y / 2), 0, img_msg.height) # img_msg.height = 480
+          x2 = np.clip(int(face_id_msg.bbox.center.position.x + face_id_msg.bbox.size.x / 2), 0, img_msg.width)
+          y2 = np.clip(int(face_id_msg.bbox.center.position.y + face_id_msg.bbox.size.y / 2), 0, img_msg.height)
           self.get_logger().info('===================================================')
           self.get_logger().info('body | {}, {}, {}, {}'.format(x1, x2, y1, y2)) # For Debugging
           self.get_logger().info('===================================================')
