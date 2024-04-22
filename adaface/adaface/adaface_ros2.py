@@ -23,12 +23,15 @@ This Node publish data to ~yolov8_debug_node~
 class Adaface(Node):
   def __init__(self):
     super().__init__('adaface')
-    self.get_logger().info('Adaface is now starting...')
+    self.get_logger().info('========================') 
+    self.get_logger().info('Start face recognition!')
+    self.get_logger().info('========================') 
 
     self._class_to_color = {}
     self.cv_bridge = CvBridge()
     
-     # params
+     # params.
+
     # self.declare_parameter("input_image_topic", "/camera/camera/color/image_raw")
     # self.input_image_topic = self.get_parameter(
     #         "input_image_topic").get_parameter_value().string_value
@@ -69,9 +72,7 @@ class Adaface(Node):
 
   
   def adaface_main(self, img_msg: Image, tracking_msg: DetectionArray) -> None:
-        self.get_logger().info('========================') 
-        self.get_logger().info('Start face recognition!')
-        self.get_logger().info('========================') 
+        
         face_ids_for_frame = DetectionArray()
         face_ids_for_frame.header = img_msg.header
 
@@ -87,22 +88,23 @@ class Adaface(Node):
           x2 = int(face_id_msg.bbox.center.position.x + face_id_msg.bbox.size.x / 2)
           y2 = int(face_id_msg.bbox.center.position.y + face_id_msg.bbox.size.y / 2)
           
-          # score = face_id_msg.score
-          # class_id = face_id_msg.class_id
-
           face_box, face_names = inference(cv_image[y1:y2,x1:x2])
 
+          if face_box:
+
           # Assume that one person box = one face
-          face_id_msg.bbox.center.position.x = x1 + (face_box[0][2] + face_box[0][0])//2
-          face_id_msg.bbox.size.x = face_box[0][2]- face_box[0][0]
-          face_id_msg.bbox.center.position.y = y1 + (face_box[0][3] + face_box[0][1])//2
-          face_id_msg.bbox.size.y = face_box[0][3]- face_box[0][1]
-          face_id_msg.id = face_names
+            # print(type(x1 + (face_box[0][2] + face_box[0][0])//2))
+            face_id_msg.bbox.center.position.x = float(x1 + (face_box[0][2] + face_box[0][0])//2)
+            face_id_msg.bbox.size.x = float(face_box[0][2]- face_box[0][0])
+            face_id_msg.bbox.center.position.y = float(y1 + (face_box[0][3] + face_box[0][1])//2)
+            face_id_msg.bbox.size.y = float(face_box[0][3]- face_box[0][1])
+            face_id_msg.id = str(face_names[0])
 
-          face_ids_for_frame.detection.append(face_id_msg)
-
+            face_ids_for_frame.detections.append(face_id_msg)
+            self.get_logger().info('===============================================================')
+            self.get_logger().info('center | x : {}, y : {}, Person Name | {}'.format(face_id_msg.bbox.center.position.x ,face_id_msg.bbox.center.position.y ,face_id_msg.id)) # For Debugging
+            self.get_logger().info('===============================================================')
         # publish face information (id,bbox)
-        self.get_logger().info('size [ x : {}, y : {}], face info [{}]'.format(face_id_msg.bbox.size.x ,face_id_msg.bbox.size.y,face_names)) # For Debugging
         self._adaface_pub.publish(face_ids_for_frame)
 
 def main(args=None): 
