@@ -1,3 +1,5 @@
 adaface/adaface/script/embed/
 adaface/adaface/script/video/
 adaface/adaface/script/pretrained/
+*.vscode/
+*/__pycache__/
