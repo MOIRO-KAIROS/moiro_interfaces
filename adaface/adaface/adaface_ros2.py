@@ -17,7 +17,7 @@ from sensor_msgs.msg._image import Image
 
 from .script.adaface import inference
 '''
-This Node publish data to ~yolov8_debug_node~
+This Node subscribes datas from ~yolo/tracking_node~, publish data to ~yolo/debug_node~
 '''
 
 class Adaface(Node):
@@ -91,7 +91,6 @@ class Adaface(Node):
           face_box, face_names = inference(cv_image[y1:y2,x1:x2])
 
           if face_box:
-
           # Assume that one person box = one face
             # print(type(x1 + (face_box[0][2] + face_box[0][0])//2))
             face_id_msg.bbox.center.position.x = float(x1 + (face_box[0][2] + face_box[0][0])//2)
@@ -105,6 +104,7 @@ class Adaface(Node):
             self.get_logger().info('center | x : {}, y : {}, Person Name | {}'.format(face_id_msg.bbox.center.position.x ,face_id_msg.bbox.center.position.y ,face_id_msg.id)) # For Debugging
             self.get_logger().info('===============================================================')
         # publish face information (id,bbox)
+        self.get_logger().info('Publish data')
         self._adaface_pub.publish(face_ids_for_frame)
 
 def main(args=None): 
