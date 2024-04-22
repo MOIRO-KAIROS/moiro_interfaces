@@ -19,7 +19,7 @@ sys.path.append("/home/lee52/ros2_ws/src/minhaROS/adaface/adaface/script")
 from adaface.script.adaface import AdaFace
 
 '''
-This Node publish data to ~yolov8_debug_node~
+This Node subscribes datas from ~yolo/tracking_node~, publish data to ~yolo/debug_node~
 '''
 
 class Adaface(Node):
@@ -128,6 +128,7 @@ class Adaface(Node):
             self.get_logger().info('center | x : {}, y : {}, Person Name | {}'.format(face_id_msg.bbox.center.position.x ,face_id_msg.bbox.center.position.y ,face_id_msg.id)) # For Debugging
             self.get_logger().info('===============================================================')
         # publish face information (id,bbox)
+        self.get_logger().info('Publish data')
         self._adaface_pub.publish(face_ids_for_frame)
 
 def main(args=None): 
