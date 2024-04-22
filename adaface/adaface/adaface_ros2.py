@@ -14,10 +14,12 @@ from yolov8_msgs.msg import DetectionArray
 from sensor_msgs.msg._image import Image
 # from visualization_msgs.msg import Marker
 # from visualization_msgs.msg import MarkerArray
+
 import sys
-sys.path.append("/home/minha/moiro_ws/src/faceROS2/adaface/adaface/script")
+sys.path.append("/home/lee52/ros2_ws/src/minhaROS/adaface/adaface/script")
 # /home/minha/moiro_ws/src/faceROS2/adaface/adaface/adaface_ros2.py
 from adaface.script.adaface  import AdaFace
+
 '''
 This Node subscribes datas from ~yolo/tracking_node~, publish data to ~yolo/debug_node~
 '''
@@ -114,7 +116,9 @@ class Adaface(Node):
           y1 = int(face_id_msg.bbox.center.position.y - face_id_msg.bbox.size.y / 2)
           x2 = int(face_id_msg.bbox.center.position.x + face_id_msg.bbox.size.x / 2)
           y2 = int(face_id_msg.bbox.center.position.y + face_id_msg.bbox.size.y / 2)
-          
+          self.get_logger().info('===================================================')
+          self.get_logger().info('body | {}, {}, {}, {}'.format(x1, x2, y1, y2)) # For Debugging
+          self.get_logger().info('===================================================')
           face_box, face_names = self.adaface.inference(cv_image[y1:y2,x1:x2])
 
           if face_box:

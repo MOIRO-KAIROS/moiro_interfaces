@@ -1,5 +1,8 @@
 adaface/adaface/script/embed/
 adaface/adaface/script/video/
 adaface/adaface/script/pretrained/
-*.vscode/
+.vscode/
+adaface/adaface/script/face_alignment/__pycache__/
+adaface/adaface/script/__pycache__/
+adaface/adaface/script/face_alignment/mtcnn_pytorch/src/__pycache__/
 */__pycache__/
