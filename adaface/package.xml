@@ -21,7 +21,7 @@
   <test_depend>python3-pytest</test_depend>
 
   <depend>rclpy</depend>
-  <depend>adaface_interfaces</depend>
+  #<depend>adaface_interfaces</depend>
   <depend>yolov8_msgs</depend>
   <depend>yolov8_ros</depend>
 

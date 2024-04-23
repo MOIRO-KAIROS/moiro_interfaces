@@ -120,7 +120,7 @@ class AdaFace():
         
         # if not face_encodings:
         #     continue
-        face_names = []
+        face_info = []
         if len(face_encodings) > 0:
             ## 2. 얼굴 유사도 측정 with tensor
             # start_time = time.time() # 연산에 대한 실행 시간(start) check
@@ -128,12 +128,12 @@ class AdaFace():
             with torch.no_grad():
                 face_distances = torch.matmul(face_encodings, self.known_face_encodings.T)
             best_match_index = torch.argmax(face_distances, dim=1)
-            face_names = ["unknown" if torch.any(face_distances[i][idx] < self.thresh) else self.known_face_names[idx] for i, idx in enumerate(best_match_index)]
+            face_info = [["unknown",face_distances[i][idx]] if torch.any(face_distances[i][idx] < self.thresh) else [self.known_face_names[idx], face_distances[i][idx]]for i, idx in enumerate(best_match_index)]
             # face_names = [known_face_names[idx] for idx in best_match_index] # threshold 없는 경우 ('unkown' 처리 안한 경우)
             # end_time = time.time() # 연산에 대한 실행 시간(end) check
             # print("Execution Time:", (end_time - start_time), "sec") # 실행 시간 0.0003 ~
         
-        return bboxes, face_names
+        return bboxes, face_info
 
     def run_video(self): 
         video_capture = cv2.VideoCapture(self.video) # os.path.join(sys_path, "video/iAM.mp4"

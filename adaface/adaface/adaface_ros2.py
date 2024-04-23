@@ -122,7 +122,7 @@ class Adaface(Node):
           self.get_logger().info('===================================================')
           self.get_logger().info('body | {}, {}, {}, {}'.format(x1, x2, y1, y2)) # For Debugging
           self.get_logger().info('===================================================')
-          face_box, face_names = self.adaface.inference(cv_image[y1:y2,x1:x2])
+          face_box, face_info = self.adaface.inference(cv_image[y1:y2,x1:x2])
 
           if face_box:
           # Assume that one person box = one face
@@ -131,7 +131,9 @@ class Adaface(Node):
             face_id_msg.bbox.size.x = float(face_box[0][2]- face_box[0][0])
             face_id_msg.bbox.center.position.y = float(y1 + (face_box[0][3] + face_box[0][1])//2)
             face_id_msg.bbox.size.y = float(face_box[0][3]- face_box[0][1])
-            face_id_msg.id = str(face_names[0])
+            face_id_msg.id = str(face_info[0][0])
+            
+            face_id_msg.score = float(face_info[0][1])
 
             face_ids_for_frame.detections.append(face_id_msg)
             self.get_logger().info('===============================================================')

@@ -89,6 +89,16 @@ class DebugNode(Node):
         label = detection.class_name
         score = detection.score
         box_msg: BoundingBox2D = detection.bbox
+
+        min_pt = (round(box_msg.center.position.x - box_msg.size.x / 2.0),
+            round(box_msg.center.position.y - box_msg.size.y / 2.0))
+        max_pt = (round(box_msg.center.position.x + box_msg.size.x / 2.0),
+            round(box_msg.center.position.y + box_msg.size.y / 2.0))
+        
+        # write text
+        font = cv2.FONT_HERSHEY_COMPLEX
+        pos = (min_pt[0] + 25, min_pt[1] + 50)
+
         if face_detection != None:
             face_box_msg: BoundingBox2D = face_detection.bbox
 
@@ -98,22 +108,22 @@ class DebugNode(Node):
                   round(face_box_msg.center.position.y + face_box_msg.size.y / 2.0))
             
             cv2.rectangle(cv_image, min_face, max_face, (255,255,255), 2)
+            label = "{} ({:.3f})".format(str(detection.id), score)
+            cv2.putText(cv_image, label, pos, font,
+                    0.5, (0,255,0), 1, cv2.LINE_8)
+        else:       
+            if detection.id in self._face_name:
+               detection.id = self._face_name[detection.id]
+               label = "{} ({:.3f})".format(str(detection.id), score)
+               cv2.putText(cv_image, label, pos, font,
+                        0.5, (255,255,255), 1, cv2.LINE_AA)
+            else:
+                label = "{} ({:.3f})".format(str(detection.id), score)
+                cv2.putText(cv_image, label, pos, font,
+                        0.5, (0,0,0), 1, cv2.LINE_AA)
 
-        min_pt = (round(box_msg.center.position.x - box_msg.size.x / 2.0),
-                  round(box_msg.center.position.y - box_msg.size.y / 2.0))
-        max_pt = (round(box_msg.center.position.x + box_msg.size.x / 2.0),
-                  round(box_msg.center.position.y + box_msg.size.y / 2.0))
-        
-        # draw box
+        # draw person box
         cv2.rectangle(cv_image, min_pt, max_pt, color, 2)
-   
-
-        # write text
-        label = "{} ({}) ({:.3f})".format(label, str(detection.id), score)
-        pos = (min_pt[0] + 5, min_pt[1] + 25)
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(cv_image, label, pos, font,
-                    1, color, 1, cv2.LINE_AA)
 
         return cv_image
 
@@ -237,7 +247,8 @@ class DebugNode(Node):
         for i, detection in enumerate(detection_msg.detections):
             face_detection = adaface_msg.detections[i] if i < len(adaface_msg.detections) else None
             if face_detection:
-                if face_detection.id not in self._face_name:
+                detection.score = face_detection.score
+                if detection.id not in self._face_name:
                     self._face_name[detection.id] = face_detection.id
                     detection.id = face_detection.id
                 else:
