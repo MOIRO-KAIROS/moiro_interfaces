@@ -86,7 +86,6 @@ class DebugNode(Node):
     def draw_box(self, cv_image: np.array, detection: Detection, face_detection: Detection,color: Tuple[int]) -> np.array:
 
         # get detection info
-        label = detection.class_name
         score = detection.score
         box_msg: BoundingBox2D = detection.bbox
 
@@ -108,17 +107,17 @@ class DebugNode(Node):
                   round(face_box_msg.center.position.y + face_box_msg.size.y / 2.0))
             
             cv2.rectangle(cv_image, min_face, max_face, (255,255,255), 2)
-            label = "{} ({:.3f})".format(str(detection.id), score)
+            label = "{} ({:.3f})".format(detection.name, score)
             cv2.putText(cv_image, label, pos, font,
                     0.5, (0,255,0), 1, cv2.LINE_8)
         else:       
-            if detection.id in self._face_name:
-               detection.id = self._face_name[detection.id]
-               label = "{} ({:.3f})".format(str(detection.id), score)
+            if detection.name in self._face_name:
+               detection.name = self._face_name[detection.name]
+               label = "{} ({:.3f})".format(detection.name, score)
                cv2.putText(cv_image, label, pos, font,
                         0.5, (255,255,255), 1, cv2.LINE_AA)
             else:
-                label = "{} ({:.3f})".format(str(detection.id), score)
+                label = "{} ({:.3f})".format(detection.name, score)
                 cv2.putText(cv_image, label, pos, font,
                         0.5, (0,0,0), 1, cv2.LINE_AA)
 
@@ -236,23 +235,22 @@ class DebugNode(Node):
 
         return marker
 
-    def detections_cb(self, img_msg: Image, detection_msg: DetectionArray,adaface_msg:DetectionArray) -> None:
+    def detections_cb(self, img_msg: Image, detection_msg: DetectionArray, adaface_msg:DetectionArray) -> None:
     # def detections_cb(self, img_msg: Image, detection_msg: DetectionArray) -> None:
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg)
         bb_marker_array = MarkerArray()
         kp_marker_array = MarkerArray()
 
         detection: Detection
-
         for i, detection in enumerate(detection_msg.detections):
             face_detection = adaface_msg.detections[i] if i < len(adaface_msg.detections) else None
             if face_detection:
                 detection.score = face_detection.score
-                if detection.id not in self._face_name:
-                    self._face_name[detection.id] = face_detection.id
-                    detection.id = face_detection.id
+                if detection.name not in self._face_name:
+                    self._face_name[detection.name] = face_detection.name
+                    detection.name = face_detection.name
                 else:
-                    detection.id = self._face_name[detection.id]
+                    detection.name = self._face_name[detection.name]
             # random color
             label = detection.class_name
 

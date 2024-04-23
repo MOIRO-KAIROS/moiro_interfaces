@@ -140,7 +140,7 @@ class TrackingNode(Node):
                     # get track id
                     track_id = ""
                     if tracked_box.is_track:
-                        track_id = str(int(tracked_box.id))
+                        track_id = int(tracked_box.id)
                     tracked_detection.id = track_id
 
                     # append msg

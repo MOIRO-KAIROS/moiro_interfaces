@@ -128,7 +128,9 @@ class AdaFace():
             with torch.no_grad():
                 face_distances = torch.matmul(face_encodings, self.known_face_encodings.T)
             best_match_index = torch.argmax(face_distances, dim=1)
-            face_info = [["unknown",face_distances[i][idx]] if torch.any(face_distances[i][idx] < self.thresh) else [self.known_face_names[idx], face_distances[i][idx]]for i, idx in enumerate(best_match_index)]
+            face_info = [["unknown", face_distances[i][idx].item()] if torch.any(face_distances[i][idx] < self.thresh) else 
+                         [self.known_face_names[idx], face_distances[i][idx].item()] for i, idx in enumerate(best_match_index)]
+            face_info = face_info[0]
             # face_names = [known_face_names[idx] for idx in best_match_index] # threshold 없는 경우 ('unkown' 처리 안한 경우)
             # end_time = time.time() # 연산에 대한 실행 시간(end) check
             # print("Execution Time:", (end_time - start_time), "sec") # 실행 시간 0.0003 ~

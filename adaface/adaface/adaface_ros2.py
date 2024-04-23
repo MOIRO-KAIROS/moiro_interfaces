@@ -131,13 +131,17 @@ class Adaface(Node):
             face_id_msg.bbox.size.x = float(face_box[0][2]- face_box[0][0])
             face_id_msg.bbox.center.position.y = float(y1 + (face_box[0][3] + face_box[0][1])//2)
             face_id_msg.bbox.size.y = float(face_box[0][3]- face_box[0][1])
-            face_id_msg.id = str(face_info[0][0])
-            
-            face_id_msg.score = float(face_info[0][1])
+
+            # face_id_msg.id = face_id_msg.id
+            face_id_msg.name = face_info[0]
+            face_id_msg.score = face_info[1]
+            # self.get_logger().info('===============================================================')
+            # self.get_logger().info(f'===={face_info}====') # For Debugging
+            # self.get_logger().info('===============================================================')
 
             face_ids_for_frame.detections.append(face_id_msg)
             self.get_logger().info('===============================================================')
-            self.get_logger().info('center | x : {}, y : {}, Person Name | {}'.format(face_id_msg.bbox.center.position.x ,face_id_msg.bbox.center.position.y ,face_id_msg.id)) # For Debugging
+            self.get_logger().info('center | x : {}, y : {}, Person Name | {}'.format(face_id_msg.bbox.center.position.x ,face_id_msg.bbox.center.position.y ,face_id_msg.name)) # For Debugging
             self.get_logger().info('===============================================================')
         # publish face information (id,bbox)
         # self.get_logger().info('Publish data')
