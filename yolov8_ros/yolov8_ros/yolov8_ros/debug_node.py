@@ -47,6 +47,7 @@ class DebugNode(Node):
         super().__init__("debug_node")
 
         self._class_to_color = {}
+        self._face_name = {}
         self.cv_bridge = CvBridge()
 
         # params
@@ -90,7 +91,6 @@ class DebugNode(Node):
         box_msg: BoundingBox2D = detection.bbox
         if face_detection != None:
             face_box_msg: BoundingBox2D = face_detection.bbox
-            track_id = face_detection.id
 
             min_face = (round(face_box_msg.center.position.x - face_box_msg.size.x / 2.0),
                   round(face_box_msg.center.position.y - face_box_msg.size.y / 2.0))
@@ -98,8 +98,6 @@ class DebugNode(Node):
                   round(face_box_msg.center.position.y + face_box_msg.size.y / 2.0))
             
             cv2.rectangle(cv_image, min_face, max_face, (255,255,255), 2)
-        else:
-            track_id = detection.id
 
         min_pt = (round(box_msg.center.position.x - box_msg.size.x / 2.0),
                   round(box_msg.center.position.y - box_msg.size.y / 2.0))
@@ -111,7 +109,7 @@ class DebugNode(Node):
    
 
         # write text
-        label = "{} ({}) ({:.3f})".format(label, str(track_id), score)
+        label = "{} ({}) ({:.3f})".format(label, str(detection.id), score)
         pos = (min_pt[0] + 5, min_pt[1] + 25)
         font = cv2.FONT_HERSHEY_SIMPLEX
         cv2.putText(cv_image, label, pos, font,
@@ -235,13 +233,15 @@ class DebugNode(Node):
         kp_marker_array = MarkerArray()
 
         detection: Detection
-        # for detection in detection_msg.detections:
-        ######
+
         for i, detection in enumerate(detection_msg.detections):
             face_detection = adaface_msg.detections[i] if i < len(adaface_msg.detections) else None
             if face_detection:
-                detection.id = face_detection.id
-        #######
+                if face_detection.id not in self._face_name:
+                    self._face_name[detection.id] = face_detection.id
+                    detection.id = face_detection.id
+                else:
+                    detection.id = self._face_name[detection.id]
             # random color
             label = detection.class_name
 
@@ -276,7 +276,6 @@ class DebugNode(Node):
                                                            encoding=img_msg.encoding))
         self._bb_markers_pub.publish(bb_marker_array)
         self._kp_markers_pub.publish(kp_marker_array)
-
 
 def main():
     rclpy.init()
