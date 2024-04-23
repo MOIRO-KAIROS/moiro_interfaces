@@ -83,7 +83,7 @@ class DebugNode(Node):
         self._synchronizer.registerCallback(self.detections_cb)
 
 
-    def draw_box(self, cv_image: np.array, detection: Detection, face_detection: Detection,color: Tuple[int]) -> np.array:
+    def draw_box(self, cv_image: np.array, detection: Detection, face_detection: Detection) -> np.array:
 
         # get detection info
         score = detection.score
@@ -97,6 +97,7 @@ class DebugNode(Node):
         # write text
         font = cv2.FONT_HERSHEY_COMPLEX
         pos = (min_pt[0] + 25, min_pt[1] + 50)
+        label = "({}) {} ({:.3f})".format(detection.id, detection.name, score)
 
         if face_detection != None:
             face_box_msg: BoundingBox2D = face_detection.bbox
@@ -107,26 +108,26 @@ class DebugNode(Node):
                   round(face_box_msg.center.position.y + face_box_msg.size.y / 2.0))
             
             cv2.rectangle(cv_image, min_face, max_face, (255,255,255), 2)
-            label = "{} ({:.3f})".format(detection.name, score)
+            
             cv2.putText(cv_image, label, pos, font,
                     0.5, (0,255,0), 1, cv2.LINE_8)
         else:       
-            if detection.name in self._face_name:
-               detection.name = self._face_name[detection.name]
+            if detection.id in self._face_name:
+               detection.name = self._face_name[detection.id]
                label = "{} ({:.3f})".format(detection.name, score)
                cv2.putText(cv_image, label, pos, font,
                         0.5, (255,255,255), 1, cv2.LINE_AA)
             else:
-                label = "{} ({:.3f})".format(detection.name, score)
+                # label = "{} ({:.3f})".format(detection.name, score)
                 cv2.putText(cv_image, label, pos, font,
                         0.5, (0,0,0), 1, cv2.LINE_AA)
 
         # draw person box
-        cv2.rectangle(cv_image, min_pt, max_pt, color, 2)
+        cv2.rectangle(cv_image, min_pt, max_pt, (135, 204, 255), 2)
 
         return cv_image
 
-    def draw_mask(self, cv_image: np.array, detection: Detection, color: Tuple[int]) -> np.array:
+    def draw_mask(self, cv_image: np.array, detection: Detection) -> np.array:
 
         mask_msg = detection.mask
         mask_array = np.array([[int(ele.x), int(ele.y)]
@@ -134,10 +135,10 @@ class DebugNode(Node):
 
         if mask_msg.data:
             layer = cv_image.copy()
-            layer = cv2.fillPoly(layer, pts=[mask_array], color=color)
+            layer = cv2.fillPoly(layer, pts=[mask_array], color=(135, 204, 255))
             cv2.addWeighted(cv_image, 0.4, layer, 0.6, 0, cv_image)
             cv_image = cv2.polylines(cv_image, [mask_array], isClosed=True,
-                                     color=color, thickness=2, lineType=cv2.LINE_AA)
+                                     color=(135, 204, 255), thickness=2, lineType=cv2.LINE_AA)
         return cv_image
 
     def draw_keypoints(self, cv_image: np.array, detection: Detection) -> np.array:
@@ -246,24 +247,15 @@ class DebugNode(Node):
             face_detection = adaface_msg.detections[i] if i < len(adaface_msg.detections) else None
             if face_detection:
                 detection.score = face_detection.score
-                if detection.name not in self._face_name:
-                    self._face_name[detection.name] = face_detection.name
-                    detection.name = face_detection.name
+                if detection.id not in self._face_name:
+                    if face_detection.name != 'unknown':
+                        self._face_name[detection.id] = face_detection.name
+                        detection.name = face_detection.name
                 else:
-                    detection.name = self._face_name[detection.name]
-            # random color
-            label = detection.class_name
+                    detection.name = self._face_name[detection.id]
 
-            if label not in self._class_to_color:
-                r = random.randint(0, 255)
-                g = random.randint(0, 255)
-                b = random.randint(0, 255)
-                self._class_to_color[label] = (r, g, b)
-
-            color = self._class_to_color[label]
-
-            cv_image = self.draw_box(cv_image, detection,face_detection, color)
-            cv_image = self.draw_mask(cv_image, detection, color)
+            cv_image = self.draw_box(cv_image, detection,face_detection)
+            cv_image = self.draw_mask(cv_image, detection)
             cv_image = self.draw_keypoints(cv_image, detection)
 
             if detection.bbox3d.frame_id:
