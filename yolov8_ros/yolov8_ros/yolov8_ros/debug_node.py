@@ -39,13 +39,14 @@ from yolov8_msgs.msg import KeyPoint2D
 from yolov8_msgs.msg import KeyPoint3D
 from yolov8_msgs.msg import Detection
 from yolov8_msgs.msg import DetectionArray
+from yolov8_msgs.msg import FaceBox
+from yolov8_msgs.msg import FaceBoxArray
 
 
 class DebugNode(Node):
 
     def __init__(self) -> None:
         super().__init__("debug_node")
-
         self._class_to_color = {}
         self._face_name = {}
         self._face_id = {}
@@ -77,7 +78,7 @@ class DebugNode(Node):
             self, DetectionArray, "detections", qos_profile=10)
         ###
         face_sub = message_filters.Subscriber(
-            self, DetectionArray, "/adaface/adaface_msg",qos_profile=10)
+            self, FaceBoxArray, "/adaface/adaface_msg",qos_profile=10)
         ###
         self._synchronizer = message_filters.ApproximateTimeSynchronizer(
             (image_sub, detections_sub,face_sub), 10, 0.5)
@@ -85,7 +86,7 @@ class DebugNode(Node):
         self._synchronizer.registerCallback(self.detections_cb)
 
 
-    def draw_box(self, cv_image: np.array, detection: Detection, face_detection: Detection) -> np.array:
+    def draw_box(self, cv_image: np.array, detection: Detection, face_detection: FaceBox) -> np.array:
 
         # get detection info
         score = detection.score
@@ -249,8 +250,7 @@ class DebugNode(Node):
 
         return marker
 
-    def detections_cb(self, img_msg: Image, detection_msg: DetectionArray, adaface_msg:DetectionArray) -> None:
-    # def detections_cb(self, img_msg: Image, detection_msg: DetectionArray) -> None:
+    def detections_cb(self, img_msg: Image, detection_msg: DetectionArray, adaface_msg:FaceBoxArray) -> None:
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg)
         bb_marker_array = MarkerArray()
         kp_marker_array = MarkerArray()
@@ -258,7 +258,6 @@ class DebugNode(Node):
         detection: Detection
         for i, detection in enumerate(detection_msg.detections):
             face_detection = adaface_msg.detections[i] if i < len(adaface_msg.detections) else None
-            # 감지된 얼굴이 있을 때
             if face_detection:
                 detection.score = face_detection.score
                 # 해당 사람 박스에 이름이 부여된 적이 없으며,

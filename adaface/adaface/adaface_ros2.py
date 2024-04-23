@@ -12,6 +12,8 @@ from cv_bridge import CvBridge
 from yolov8_msgs.msg import Detection
 from yolov8_msgs.msg import DetectionArray
 from sensor_msgs.msg._image import Image
+from yolov8_msgs.msg import FaceBox
+from yolov8_msgs.msg import FaceBoxArray
 # from visualization_msgs.msg import Marker
 # from visualization_msgs.msg import MarkerArray
 
@@ -85,7 +87,7 @@ class Adaface(Node):
     )
 
     #pubs
-    self._adaface_pub = self.create_publisher(DetectionArray, 'adaface_msg',10)
+    self._adaface_pub = self.create_publisher(FaceBoxArray, 'adaface_msg',10)
 
     ## subs
     # 이미지와 message를 subscribe
@@ -105,20 +107,21 @@ class Adaface(Node):
   
   def adaface_main(self, img_msg: Image, tracking_msg: DetectionArray) -> None:
         
-        face_ids_for_frame = DetectionArray()
+        face_ids_for_frame = FaceBoxArray()
         face_ids_for_frame.header = img_msg.header
 
         # convert image for align
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg)
 
-        face_id_msg: Detection
-        for face_id_msg in tracking_msg.detections:
-          
+        face_id_msg = FaceBox()
+        detection : Detection
+        for detection in tracking_msg.detections:
+          face_id_msg.id = detection.id
           # 객체 이미지 위치 잡고 그걸 inference로 보낸다
-          x1 = np.clip(int(face_id_msg.bbox.center.position.x - face_id_msg.bbox.size.x / 2), 0, img_msg.width) # img_msg.width = 640 # ? 설정 시: 640 - 1
-          y1 = np.clip(int(face_id_msg.bbox.center.position.y - face_id_msg.bbox.size.y / 2), 0, img_msg.height) # img_msg.height = 480
-          x2 = np.clip(int(face_id_msg.bbox.center.position.x + face_id_msg.bbox.size.x / 2), 0, img_msg.width)
-          y2 = np.clip(int(face_id_msg.bbox.center.position.y + face_id_msg.bbox.size.y / 2), 0, img_msg.height)
+          x1 = np.clip(int(detection.bbox.center.position.x - detection.bbox.size.x / 2), 0, img_msg.width) # img_msg.width = 640 # ? 설정 시: 640 - 1
+          y1 = np.clip(int(detection.bbox.center.position.y - detection.bbox.size.y / 2), 0, img_msg.height) # img_msg.height = 480
+          x2 = np.clip(int(detection.bbox.center.position.x + detection.bbox.size.x / 2), 0, img_msg.width)
+          y2 = np.clip(int(detection.bbox.center.position.y + detection.bbox.size.y / 2), 0, img_msg.height)
           self.get_logger().info('===================================================')
           self.get_logger().info('body | {}, {}, {}, {}'.format(x1, x2, y1, y2)) # For Debugging
           self.get_logger().info('===================================================')
@@ -135,11 +138,8 @@ class Adaface(Node):
             # face_id_msg.id = face_id_msg.id
             face_id_msg.name = face_info[0]
             face_id_msg.score = face_info[1]
-            # self.get_logger().info('===============================================================')
-            # self.get_logger().info(f'===={face_info}====') # For Debugging
-            # self.get_logger().info('===============================================================')
 
-            face_ids_for_frame.detections.append(face_id_msg)
+            face_ids_for_frame.faceboxes.append(face_id_msg)
             self.get_logger().info('===============================================================')
             self.get_logger().info('center | x : {}, y : {}, Person Name | {}'.format(face_id_msg.bbox.center.position.x ,face_id_msg.bbox.center.position.y ,face_id_msg.name)) # For Debugging
             self.get_logger().info('===============================================================')
