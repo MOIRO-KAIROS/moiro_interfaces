@@ -17,8 +17,10 @@ from sensor_msgs.msg._image import Image
 
 import numpy as np
 import sys
-sys.path.append("/home/lee52/ros2_ws/src/minhaROS/adaface/adaface/script")
-# /home/minha/moiro_ws/src/faceROS2/adaface/adaface/adaface_ros2.py
+import os
+
+sys.path.append(os.path.join(os.path.expanduser("~"), "moiro_ws/src/faceROS2/adaface/adaface/script"))
+
 from adaface.script.adaface  import AdaFace
 
 '''
