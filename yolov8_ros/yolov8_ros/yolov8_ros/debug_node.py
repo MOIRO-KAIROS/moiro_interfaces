@@ -48,7 +48,9 @@ class DebugNode(Node):
 
         self._class_to_color = {}
         self._face_name = {}
+        self._face_id = {}
         self.cv_bridge = CvBridge()
+        self.shoulder_center = {}
 
         # params
         self.declare_parameter("image_reliability",
@@ -120,7 +122,7 @@ class DebugNode(Node):
             else:
                 # label = "{} ({:.3f})".format(detection.name, score)
                 cv2.putText(cv_image, label, pos, font,
-                        0.5, (0,0,0), 1, cv2.LINE_AA)
+                        0.5, (135, 204, 255), 1, cv2.LINE_AA)
 
         # draw person box
         cv2.rectangle(cv_image, min_pt, max_pt, (135, 204, 255), 2)
@@ -146,7 +148,7 @@ class DebugNode(Node):
         keypoints_msg = detection.keypoints
 
         ann = Annotator(cv_image)
-
+        sh_point = [0,0]
         kp: KeyPoint2D
         for kp in keypoints_msg.data:
             color_k = [int(x) for x in ann.kpt_color[kp.id - 1]
@@ -154,6 +156,17 @@ class DebugNode(Node):
 
             cv2.circle(cv_image, (int(kp.point.x), int(kp.point.y)),
                        5, color_k, -1, lineType=cv2.LINE_AA)
+            # cv2.putText(cv_image, str(kp.id), (int(kp.point.x) - 5 , int(kp.point.y) -5), cv2.FONT_HERSHEY_COMPLEX,
+            #             0.3, (255, 255, 255), 1, cv2.LINE_AA)  ## Checking Key point id
+            #### Shoulder middle point!
+            if str(kp.id) == '7' or str(kp.id) == '6':
+                sh_point[0] += kp.point.x
+                sh_point[1] += kp.point.y
+        sh_point[0],sh_point[1] = sh_point[0]//2,sh_point[1]//2
+        self.shoulder_center[detection.id] = [sh_point[0],sh_point[1]]
+        cv2.circle(cv_image, (int(sh_point[0]), int(sh_point[1])),
+                       5, (255,255,255), -1, lineType=cv2.LINE_AA)
+        self.get_logger().info('Person id : {} | depth point {}'.format(str(kp.id),[sh_point[0],sh_point[1]]))         
 
         def get_pk_pose(kp_id: int) -> Tuple[int]:
             for kp in keypoints_msg.data:
@@ -245,18 +258,26 @@ class DebugNode(Node):
         detection: Detection
         for i, detection in enumerate(detection_msg.detections):
             face_detection = adaface_msg.detections[i] if i < len(adaface_msg.detections) else None
+            # 감지된 얼굴이 있을 때
             if face_detection:
                 detection.score = face_detection.score
+                # 해당 사람 박스에 이름이 부여된 적이 없으며,
                 if detection.id not in self._face_name:
-                    if face_detection.name != 'unknown':
+                    # 감지된 얼굴이 unknown이 아니고, 감지된 얼굴이 이미 등장한 인물 아닐때
+                    if face_detection.name != 'unknown' and face_detection.name not in self._face_id:
                         self._face_name[detection.id] = face_detection.name
+                        self._face_id[face_detection.name] = detection.id
                         detection.name = face_detection.name
+
                 else:
                     detection.name = self._face_name[detection.id]
-
-            cv_image = self.draw_box(cv_image, detection,face_detection)
+            
             cv_image = self.draw_mask(cv_image, detection)
             cv_image = self.draw_keypoints(cv_image, detection)
+            cv_image = self.draw_box(cv_image, detection,face_detection)
+
+            
+            # self.get_logger().info('{}'.format()) 
 
             if detection.bbox3d.frame_id:
                 marker = self.create_bb_marker(detection)
