@@ -1,17 +1,17 @@
-# faceROS2 Using Adaface and YOLOv8
-#### ROS2 program으로 face recognition을 하기 위해 제작하였습니다
-
-## 0. Yolov8_ros
+# faceRec_ros2 Using Adaface and YOLOv8
+#### This repo is designed to implement real-time face recognition in ROS2
+##### [ Ubuntu 22.04 ROS2 humble ver. ]
+## 0. YOLOv8_ros
 https://github.com/mgonzs13/yolov8_ros
-- Person detect를 위해 사용 
+- Use for Person detection
   
 ## 0. Adaface
 https://github.com/mk-minchul/AdaFace
-- face recogntion을 위해 사용 
+- Use for Face Recognition
 
 ## 1. Setup
 ### 1) conda 설치
-##참고: https://webnautes.tistory.com/1844 # 레퍼런스
+#### 참고: https://webnautes.tistory.com/1844 # 레퍼런스
 
 -  Architecture 확인
     ```
@@ -64,6 +64,7 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 pip install scikit-image matplotlib pandas scikit-learn
 pip install pytorch pytorch-lightning==1.8.6
 pip install tqdm bcolz-zipline prettytable menpo mxnet opencv-python
+pip install -U colcon-common-extensions
 ```
 
 
@@ -72,30 +73,76 @@ conda list | grep torch
 ```
 > pytorch-lightning         1.8.6                    pypi_0    pypi
 
-> torch                     2.2.1+cu118              pypi_0    pypi
+> torch                     2.2.2+cu118              pypi_0    pypi
 
-> torchaudio                2.2.1+cu118              pypi_0    pypi
+> torchaudio                2.2.2+cu118              pypi_0    pypi
 
-> torchmetrics              1.3.1                    pypi_0    pypi
+> torchmetrics              1.3.2                    pypi_0    pypi
 
-> torchvision               0.17.1+cu118             pypi_0    pypi
+> torchvision               0.17.2+cu118             pypi_0    pypi
 
 
-### 3) RUN *** 전에 할 것
+### 3) Installation
+- (주의) workspace 이름을 moiro_ws로 준수할 것
+```
+  cd ~/moiro_ws/src
+  git clone
+  pip3 install -r faceRec_ros2/requirements.txt
+  cd ~/moiro_ws
+  colcon build
+```
 
-```pretrained``` 폴더 생성 후, weight(.ckpt) 다운로드
+### 4) RUN *** 전에 할 것
+#### (1)  ```pretrained``` 폴더 생성 후, weight(.ckpt) 다운로드
 - 다운로드 (링크 클릭)
     | Arch | Dataset    | Link                                                                                         |
     |------|------------|----------------------------------------------------------------------------------------------|
     | R50  | MS1MV2     | [gdrive](https://drive.google.com/file/d/1eUaSHG4pGlIZK7hBkqjyp2fc2epKoBvI/view?usp=sharing) |
 
-- 파일 구조
+- 파일 구조 (추가해야하는 pretrained와 video 부분 폴더만 깊게 표기)
     ```
-    pretrained
-        |
-        |_____ adaface_ir50_ms1mv2.ckpt
+    faceRec_ros2
+    ├── adaface
+    │   ├── adaface
+    │   │   ├── adaface_ros2.py
+    │   │   ├── __init__.py
+    │   │   └── script
+    │   │       ├── adaface.py
+    │   │       ├── embed
+    │   │       ├── face_alignment
+    │   │       ├── face_dataset
+    │   │       ├── __init__.py
+    │   │       ├── LICENSE
+    │   │       ├── main.py
+    │   │       ├── net.py
+    │   │       ├── pretrained
+    │   │       ├── __pycache__
+    │   │       ├── README.md
+    │   │       ├── requirements.txt
+    │   │       ├── scripts
+    │   │       └── utils.py
+    │   ├── launch
+    │   ├── package.xml
+    │   ├── resource
+    │   ├── setup.cfg
+    │   ├── setup.py
+    │   └── test   
+    │    
+    ├── README.md
+    └── yolov8_ros
+
     ```
 
+### 5) Usage
+```
+ros2 launch adaface adaface.launch.py
+```
+![adafaceRqtGraph](https://github.com/MOIRO-KAIROS/faceRec_ros2/assets/114575723/41b6a8bf-2987-4214-8988-bbf7bc2db801)
+
+- realsense_ros -> yolov8_ros -> adaface 순으로 구동됨
+![Screenshot from 2024-04-24 11-35-27](https://github.com/MOIRO-KAIROS/faceRec_ros2/assets/114575723/c1d8be5c-20f7-4b3c-be35-6c2f13c1324f)
+
+## 하단부 수정 필요
 ### 4) Run Inference
 ```
 python inference.py
