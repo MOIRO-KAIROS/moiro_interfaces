@@ -99,7 +99,7 @@ class DebugNode(Node):
         
         # write text
         font = cv2.FONT_HERSHEY_COMPLEX
-        pos = (min_pt[0] + 25, min_pt[1] + 50)
+        pos = (min_pt[0] + 25, max_pt[1] - 25)
         label = "({}) {} ({:.3f})".format(detection.id, detection.name, score)
 
         if face_detection != None:
@@ -113,17 +113,17 @@ class DebugNode(Node):
             cv2.rectangle(cv_image, min_face, max_face, (255,255,255), 2)
             
             cv2.putText(cv_image, label, pos, font,
-                    0.5, (0,255,0), 1, cv2.LINE_8)
+                    0.6, (0,255,0), 1, cv2.LINE_AA)
         else:       
             if detection.id in self._face_name:
                detection.name = self._face_name[detection.id]
                label = "{} ({:.3f})".format(detection.name, score)
                cv2.putText(cv_image, label, pos, font,
-                        0.5, (255,255,255), 1, cv2.LINE_AA)
+                        0.6, (255,255,255), 1, cv2.LINE_AA)
             else:
                 # label = "{} ({:.3f})".format(detection.name, score)
                 cv2.putText(cv_image, label, pos, font,
-                        0.5, (135, 204, 255), 1, cv2.LINE_AA)
+                        0.6, (135, 204, 255), 1, cv2.LINE_AA)
 
         # draw person box
         cv2.rectangle(cv_image, min_pt, max_pt, (135, 204, 255), 2)
@@ -257,7 +257,7 @@ class DebugNode(Node):
 
         detection: Detection
         for i, detection in enumerate(detection_msg.detections):
-            face_detection = adaface_msg.detections[i] if i < len(adaface_msg.detections) else None
+            face_detection = adaface_msg.faceboxes[i] if i < len(adaface_msg.faceboxes) else None
             if face_detection:
                 detection.score = face_detection.score
                 # 해당 사람 박스에 이름이 부여된 적이 없으며,
