@@ -57,18 +57,11 @@ class Adaface(Node):
     self.declare_parameter("dataset", "face_dataset/test")  
     self.dataset = self.get_parameter("dataset").get_parameter_value().string_value
     
-    self.declare_parameter("video", "0")
+    self.declare_parameter("video", 0)
     self.video = self.get_parameter("video").get_parameter_value().string_value
     
     self.declare_parameter("image_reliability",
                             QoSReliabilityPolicy.BEST_EFFORT)
-    image_qos_profile = QoSProfile(
-        reliability=self.get_parameter(
-            "image_reliability").get_parameter_value().integer_value,
-        history=QoSHistoryPolicy.KEEP_LAST,
-        durability=QoSDurabilityPolicy.VOLATILE,
-        depth=1
-    )
 
     image_qos_profile = QoSProfile(
         reliability=self.get_parameter(
@@ -99,14 +92,13 @@ class Adaface(Node):
     
     # 이미지와 message를 동기화
     self._synchronizer = message_filters.ApproximateTimeSynchronizer(
-        (image_sub, tracking_sub), 10, 0.5)
+        (image_sub, tracking_sub), 10, 0.1)
     
     # Adaface_main 부름
     self._synchronizer.registerCallback(self.adaface_main)
 
   
   def adaface_main(self, img_msg: Image, tracking_msg: DetectionArray) -> None:
-        
         face_ids_for_frame = FaceBoxArray()
         face_ids_for_frame.header = img_msg.header
 

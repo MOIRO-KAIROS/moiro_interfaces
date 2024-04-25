@@ -167,22 +167,21 @@ class DebugNode(Node):
         self.shoulder_center[detection.id] = [sh_point[0],sh_point[1]]
         cv2.circle(cv_image, (int(sh_point[0]), int(sh_point[1])),
                        5, (255,255,255), -1, lineType=cv2.LINE_AA)
-        self.get_logger().info('Person id : {} | depth point {}'.format(str(kp.id),[sh_point[0],sh_point[1]]))         
+        self.get_logger().info('Person id : {} | depth point {}'.format(str(detection.id),[sh_point[0],sh_point[1]]))         
 
-        def get_pk_pose(kp_id: int) -> Tuple[int]:
-            for kp in keypoints_msg.data:
-                if kp.id == kp_id:
-                    return (int(kp.point.x), int(kp.point.y))
-            return None
+        # def get_pk_pose(kp_id: int) -> Tuple[int]:
+        #     for kp in keypoints_msg.data:
+        #         if kp.id == kp_id:
+        #             return (int(kp.point.x), int(kp.point.y))
+        #     return None
 
-        for i, sk in enumerate(ann.skeleton):
-            kp1_pos = get_pk_pose(sk[0])
-            kp2_pos = get_pk_pose(sk[1])
+        # for i, sk in enumerate(ann.skeleton):
+        #     kp1_pos = get_pk_pose(sk[0])
+        #     kp2_pos = get_pk_pose(sk[1])
 
-            if kp1_pos is not None and kp2_pos is not None:
-                cv2.line(cv_image, kp1_pos, kp2_pos, [
-                    int(x) for x in ann.limb_color[i]], thickness=2, lineType=cv2.LINE_AA)
-
+        #     if kp1_pos is not None and kp2_pos is not None:
+        #         cv2.line(cv_image, kp1_pos, kp2_pos, [
+        #             int(x) for x in ann.limb_color[i]], thickness=2, lineType=cv2.LINE_AA)
         return cv_image
 
     def create_bb_marker(self, detection: Detection) -> Marker:
@@ -251,11 +250,12 @@ class DebugNode(Node):
         return marker
 
     def detections_cb(self, img_msg: Image, detection_msg: DetectionArray, adaface_msg:FaceBoxArray) -> None:
-        cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg)
-        bb_marker_array = MarkerArray()
-        kp_marker_array = MarkerArray()
+        cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg,"rgb8")
+        # bb_marker_array = MarkerArray()
+        # kp_marker_array = MarkerArray()
 
         detection: Detection
+        face_detection: FaceBox
         for i, detection in enumerate(detection_msg.detections):
             face_detection = adaface_msg.faceboxes[i] if i < len(adaface_msg.faceboxes) else None
             if face_detection:
@@ -267,6 +267,9 @@ class DebugNode(Node):
                         self._face_name[detection.id] = face_detection.name
                         self._face_id[face_detection.name] = detection.id
                         detection.name = face_detection.name
+                # self._face_name[detection.id] = face_detection.name
+                # self._face_id[face_detection.name] = detection.id
+                # detection.name = face_detection.name
 
                 else:
                     detection.name = self._face_name[detection.id]
@@ -275,28 +278,25 @@ class DebugNode(Node):
             cv_image = self.draw_keypoints(cv_image, detection)
             cv_image = self.draw_box(cv_image, detection,face_detection)
 
-            
-            # self.get_logger().info('{}'.format()) 
+            # if detection.bbox3d.frame_id:
+            #     marker = self.create_bb_marker(detection)
+            #     marker.header.stamp = img_msg.header.stamp
+            #     marker.id = len(bb_marker_array.markers)
+            #     bb_marker_array.markers.append(marker)
 
-            if detection.bbox3d.frame_id:
-                marker = self.create_bb_marker(detection)
-                marker.header.stamp = img_msg.header.stamp
-                marker.id = len(bb_marker_array.markers)
-                bb_marker_array.markers.append(marker)
-
-            if detection.keypoints3d.frame_id:
-                for kp in detection.keypoints3d.data:
-                    marker = self.create_kp_marker(kp)
-                    marker.header.frame_id = detection.keypoints3d.frame_id
-                    marker.header.stamp = img_msg.header.stamp
-                    marker.id = len(kp_marker_array.markers)
-                    kp_marker_array.markers.append(marker)
+            # if detection.keypoints3d.frame_id:
+            #     for kp in detection.keypoints3d.data:
+            #         marker = self.create_kp_marker(kp)
+            #         marker.header.frame_id = detection.keypoints3d.frame_id
+            #         marker.header.stamp = img_msg.header.stamp
+            #         marker.id = len(kp_marker_array.markers)
+            #         kp_marker_array.markers.append(marker)
 
         # publish dbg image
-        self._dbg_pub.publish(self.cv_bridge.cv2_to_imgmsg(cv_image,
-                                                           encoding=img_msg.encoding))
-        self._bb_markers_pub.publish(bb_marker_array)
-        self._kp_markers_pub.publish(kp_marker_array)
+        self._dbg_pub.publish(self.cv_bridge.cv2_to_imgmsg(cv_image,encoding=img_msg.encoding))
+        # self.get_logger().info('Dpg image Publish')
+        # self._bb_markers_pub.publish(bb_marker_array)
+        # self._kp_markers_pub.publish(kp_marker_array)
 
 def main():
     rclpy.init()

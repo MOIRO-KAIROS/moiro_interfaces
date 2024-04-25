@@ -27,6 +27,7 @@ setup(
     entry_points={
         'console_scripts': [
           'face_recognition = adaface.adaface_ros2:main',
+          'video_publisher= adaface.video_publisher:main' 
         ],
     },
 )
