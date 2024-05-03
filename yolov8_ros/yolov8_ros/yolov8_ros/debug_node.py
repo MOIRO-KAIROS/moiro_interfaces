@@ -15,7 +15,6 @@
 
 
 import cv2
-import random
 import numpy as np
 from typing import Tuple
 
@@ -66,10 +65,10 @@ class DebugNode(Node):
 
         # pubs
         self._dbg_pub = self.create_publisher(Image, "dbg_image", 10)
-        self._bb_markers_pub = self.create_publisher(
-            MarkerArray, "dgb_bb_markers", 10)
-        self._kp_markers_pub = self.create_publisher(
-            MarkerArray, "dgb_kp_markers", 10)
+        # self._bb_markers_pub = self.create_publisher(
+        #     MarkerArray, "dgb_bb_markers", 10)
+        # self._kp_markers_pub = self.create_publisher(
+        #     MarkerArray, "dgb_kp_markers", 10)
 
         # subs
         image_sub = message_filters.Subscriber(
@@ -184,70 +183,70 @@ class DebugNode(Node):
         #             int(x) for x in ann.limb_color[i]], thickness=2, lineType=cv2.LINE_AA)
         return cv_image
 
-    def create_bb_marker(self, detection: Detection) -> Marker:
+    # def create_bb_marker(self, detection: Detection) -> Marker:
 
-        bbox3d = detection.bbox3d
+    #     bbox3d = detection.bbox3d
 
-        marker = Marker()
-        marker.header.frame_id = bbox3d.frame_id
+    #     marker = Marker()
+    #     marker.header.frame_id = bbox3d.frame_id
 
-        marker.ns = "yolov8_3d"
-        marker.type = Marker.CUBE
-        marker.action = Marker.ADD
-        marker.frame_locked = False
+    #     marker.ns = "yolov8_3d"
+    #     marker.type = Marker.CUBE
+    #     marker.action = Marker.ADD
+    #     marker.frame_locked = False
 
-        marker.pose.position.x = bbox3d.center.position.x
-        marker.pose.position.y = bbox3d.center.position.y
-        marker.pose.position.z = bbox3d.center.position.z
+    #     marker.pose.position.x = bbox3d.center.position.x
+    #     marker.pose.position.y = bbox3d.center.position.y
+    #     marker.pose.position.z = bbox3d.center.position.z
 
-        marker.pose.orientation.x = 0.0
-        marker.pose.orientation.y = 0.0
-        marker.pose.orientation.z = 0.0
-        marker.pose.orientation.w = 1.0
-        marker.scale.x = bbox3d.size.x
-        marker.scale.y = bbox3d.size.y
-        marker.scale.z = bbox3d.size.z
+    #     marker.pose.orientation.x = 0.0
+    #     marker.pose.orientation.y = 0.0
+    #     marker.pose.orientation.z = 0.0
+    #     marker.pose.orientation.w = 1.0
+    #     marker.scale.x = bbox3d.size.x
+    #     marker.scale.y = bbox3d.size.y
+    #     marker.scale.z = bbox3d.size.z
 
-        marker.color.b = 0.0
-        marker.color.g = detection.score * 255.0
-        marker.color.r = (1.0 - detection.score) * 255.0
-        marker.color.a = 0.4
+    #     marker.color.b = 0.0
+    #     marker.color.g = detection.score * 255.0
+    #     marker.color.r = (1.0 - detection.score) * 255.0
+    #     marker.color.a = 0.4
 
-        marker.lifetime = Duration(seconds=0.5).to_msg()
-        marker.text = detection.class_name
+    #     marker.lifetime = Duration(seconds=0.5).to_msg()
+    #     marker.text = detection.class_name
 
-        return marker
+    #     return marker
 
-    def create_kp_marker(self, keypoint: KeyPoint3D) -> Marker:
+    # def create_kp_marker(self, keypoint: KeyPoint3D) -> Marker:
 
-        marker = Marker()
+    #     marker = Marker()
 
-        marker.ns = "yolov8_3d"
-        marker.type = Marker.SPHERE
-        marker.action = Marker.ADD
-        marker.frame_locked = False
+    #     marker.ns = "yolov8_3d"
+    #     marker.type = Marker.SPHERE
+    #     marker.action = Marker.ADD
+    #     marker.frame_locked = False
 
-        marker.pose.position.x = keypoint.point.x
-        marker.pose.position.y = keypoint.point.y
-        marker.pose.position.z = keypoint.point.z
+    #     marker.pose.position.x = keypoint.point.x
+    #     marker.pose.position.y = keypoint.point.y
+    #     marker.pose.position.z = keypoint.point.z
 
-        marker.pose.orientation.x = 0.0
-        marker.pose.orientation.y = 0.0
-        marker.pose.orientation.z = 0.0
-        marker.pose.orientation.w = 1.0
-        marker.scale.x = 0.05
-        marker.scale.y = 0.05
-        marker.scale.z = 0.05
+    #     marker.pose.orientation.x = 0.0
+    #     marker.pose.orientation.y = 0.0
+    #     marker.pose.orientation.z = 0.0
+    #     marker.pose.orientation.w = 1.0
+    #     marker.scale.x = 0.05
+    #     marker.scale.y = 0.05
+    #     marker.scale.z = 0.05
 
-        marker.color.b = keypoint.score * 255.0
-        marker.color.g = 0.0
-        marker.color.r = (1.0 - keypoint.score) * 255.0
-        marker.color.a = 0.4
+    #     marker.color.b = keypoint.score * 255.0
+    #     marker.color.g = 0.0
+    #     marker.color.r = (1.0 - keypoint.score) * 255.0
+    #     marker.color.a = 0.4
 
-        marker.lifetime = Duration(seconds=0.5).to_msg()
-        marker.text = str(keypoint.id)
+    #     marker.lifetime = Duration(seconds=0.5).to_msg()
+    #     marker.text = str(keypoint.id)
 
-        return marker
+    #     return marker
 
     def detections_cb(self, img_msg: Image, detection_msg: DetectionArray, adaface_msg:FaceBoxArray) -> None:
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg,"rgb8")
