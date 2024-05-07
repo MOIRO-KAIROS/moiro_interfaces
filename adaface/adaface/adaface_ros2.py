@@ -99,45 +99,48 @@ class Adaface(Node):
 
   
   def adaface_main(self, img_msg: Image, tracking_msg: DetectionArray) -> None:
-        face_bboxes = FaceBoxArray()
-        face_bboxes.header = img_msg.header
+        face_detection_msg = FaceBoxArray()
+        face_detection_msg.header = img_msg.header
 
         # convert image for align
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg)
 
-        face_bbox = FaceBox()
         detection : Detection
+        face_detection = FaceBox()
         for detection in tracking_msg.detections:
-          face_bbox.id = detection.id
+          face_detection.id = detection.id
           # 객체 이미지 위치 잡고 그걸 inference로 보낸다
           x1 = np.clip(int(detection.bbox.center.position.x - detection.bbox.size.x / 2), 0, img_msg.width) # img_msg.width = 640 # ? 설정 시: 640 - 1
           y1 = np.clip(int(detection.bbox.center.position.y - detection.bbox.size.y / 2), 0, img_msg.height) # img_msg.height = 480
           x2 = np.clip(int(detection.bbox.center.position.x + detection.bbox.size.x / 2), 0, img_msg.width)
           y2 = np.clip(int(detection.bbox.center.position.y + detection.bbox.size.y / 2), 0, img_msg.height)
-          self.get_logger().info('===================================================')
-          self.get_logger().info('body | {}, {}, {}, {}'.format(x1, x2, y1, y2)) # For Debugging
-          self.get_logger().info('===================================================')
+          # self.get_logger().info('===================================================')
+          # self.get_logger().info('body | {}, {}, {}, {}'.format(x1, x2, y1, y2)) # For Debugging
+          # self.get_logger().info('===================================================')
           face_box, face_info = self.adaface.inference(cv_image[y1:y2,x1:x2])
 
           if face_box:
           # Assume that one person box = one face
             # print(type(x1 + (face_box[0][2] + face_box[0][0])//2))
-            face_bbox.bbox.center.position.x = float(x1 + (face_box[0][2] + face_box[0][0])//2)
-            face_bbox.bbox.size.x = float(face_box[0][2]- face_box[0][0])
-            face_bbox.bbox.center.position.y = float(y1 + (face_box[0][3] + face_box[0][1])//2)
-            face_bbox.bbox.size.y = float(face_box[0][3]- face_box[0][1])
+            face_detection.bbox.center.position.x = float(x1 + (face_box[0][2] + face_box[0][0])//2)
+            face_detection.bbox.size.x = float(face_box[0][2]- face_box[0][0])
+            face_detection.bbox.center.position.y = float(y1 + (face_box[0][3] + face_box[0][1])//2)
+            face_detection.bbox.size.y = float(face_box[0][3]- face_box[0][1])
 
-            # face_bbox.id = face_bbox.id
-            face_bbox.name = face_info[0]
-            face_bbox.score = face_info[1]
+            # face_detection.id = face_detection.id
+            face_detection.name = face_info[0]
+            face_detection.score = face_info[1]
 
-            face_bboxes.faceboxes.append(face_bbox)
+            # face_detection_msg.faceboxes.append(face_detection)
             self.get_logger().info('===============================================================')
-            self.get_logger().info('center | x : {}, y : {}, Person Name | {}'.format(face_bbox.bbox.center.position.x ,face_bbox.bbox.center.position.y ,face_bbox.name)) # For Debugging
+            self.get_logger().info('center | x : {}, y : {}, Person Name | {}'.format(face_detection.bbox.center.position.x ,face_detection.bbox.center.position.y ,face_detection.name)) # For Debugging
             self.get_logger().info('===============================================================')
         # publish face information (id,bbox)
-        # self.get_logger().info('Publish data')
-        self._adaface_pub.publish(face_bboxes)
+            face_detection_msg.faceboxes.append(face_detection)
+          # else:
+            #  self.get_logger().info('No face ~')
+        # self.get_logger().info(f"Person length: {len(tracking_msg.detections)} Face length: {len(face_detection_msg.faceboxes)} ")
+        self._adaface_pub.publish(face_detection_msg)
 
 def main(args=None): 
   rclpy.init(args=None)

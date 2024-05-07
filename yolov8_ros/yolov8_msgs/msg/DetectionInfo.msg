@@ -1,4 +1,5 @@
-int32 center_x
-int32 center_y
-float64 average_depth
+std_msgs/Header header
+
+float64 x
+float64 y
 int32 id

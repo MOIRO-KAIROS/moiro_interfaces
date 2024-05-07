@@ -24,6 +24,7 @@ def generate_launch_description():
             ("image_reliability", "2", "Specific reliability QoS of the input image topic (0=system default, 1=Reliable, 2=Best Effort)"),
             ("namespace_adaface", "adaface", "Namespace for the nodes"),
             ("detections", "/yolo/tracking", "YOLOv8 tracking"),
+            ("person_name","Uninitialzed","Write the name you want to detect")
         ]
     ]
     webcam_topic_cmd = DeclareLaunchArgument(
@@ -95,7 +96,8 @@ def generate_launch_description():
         launch_arguments=[
             ('model', 'yolov8m-pose.pt'),
             ('input_image_topic', LaunchConfiguration("input_image_topic")),
-            ('target_frame', 'camera_link')
+            ('target_frame', 'camera_link'),
+            ('person_name',LaunchConfiguration('person_name')),
         ]
     )
 

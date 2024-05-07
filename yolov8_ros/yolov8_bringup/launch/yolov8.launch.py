@@ -72,6 +72,13 @@ def generate_launch_description():
         "namespace",
         default_value="yolo",
         description="Namespace for the nodes")
+    
+    person_name = LaunchConfiguration("person_name")
+    person_name_cmd = DeclareLaunchArgument(
+        "person_name",
+        default_value="Uninitialzed",
+        description="Write the name you want to detect"
+    )
 
     #
     # NODES
@@ -108,10 +115,25 @@ def generate_launch_description():
         executable="debug_node",
         name="debug_node",
         namespace=namespace,
-        parameters=[{"image_reliability": image_reliability}],
+        parameters=[{"image_reliability": image_reliability,
+                     "person_name": person_name
+        }],
         remappings=[
             ("image_raw", input_image_topic),
             ("detections", "tracking")
+        ]
+    )
+
+    world_node_cmd = Node(
+        package="yolov8_ros",
+        executable="world_node",
+        name="world_node",
+        namespace=namespace,
+        parameters=[{"depth_image_reliability": image_reliability,
+        }],
+        remappings=[
+            ("depth_image", "/camera/camera/depth/image_rect_raw"),
+            ("center_point", "/yolo/center_point")
         ]
     )
 
@@ -125,9 +147,11 @@ def generate_launch_description():
     ld.add_action(input_image_topic_cmd)
     ld.add_action(image_reliability_cmd)
     ld.add_action(namespace_cmd)
+    ld.add_action(person_name_cmd)
 
     ld.add_action(detector_node_cmd)
     ld.add_action(tracking_node_cmd)
     ld.add_action(debug_node_cmd)
+    ld.add_action(world_node_cmd)
 
     return ld

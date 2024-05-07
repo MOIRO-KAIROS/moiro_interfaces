@@ -49,7 +49,7 @@ def get_aligned_face_for_webcam(image_path, rgb_pil_image=None, max_obj=6):
     except Exception as e:
         print('Face detection Failed due to error.')
         print(e)
-        face = None
+        faces = None
 
     return faces, bboxes
 

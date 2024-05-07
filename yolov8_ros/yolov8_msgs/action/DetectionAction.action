@@ -1,0 +1,9 @@
+# Request
+yolov8_msgs/Detection detection
+sensor_msgs/Image image
+---
+# Response
+yolov8_msgs/FaceBox facebox
+---
+# Feedback
+string change_name

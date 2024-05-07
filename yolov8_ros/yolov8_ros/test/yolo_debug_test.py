@@ -14,12 +14,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import cv2
 import numpy as np
+import cv2
 from typing import Tuple
 
 import rclpy
 from rclpy.node import Node
+from rclpy.action import ActionClient
 from rclpy.duration import Duration
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
@@ -31,16 +32,16 @@ from cv_bridge import CvBridge
 from ultralytics.utils.plotting import Annotator, colors
 
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 from yolov8_msgs.msg import BoundingBox2D
 from yolov8_msgs.msg import KeyPoint2D
 from yolov8_msgs.msg import KeyPoint3D
 from yolov8_msgs.msg import Detection
-from yolov8_msgs.msg import DetectionArray, DetectionInfo
+from yolov8_msgs.msg import DetectionArray
 from yolov8_msgs.msg import FaceBox
 from yolov8_msgs.msg import FaceBoxArray
+from yolov8_msgs.action import DetectionAction 
 
 
 class DebugNode(Node):
@@ -63,13 +64,11 @@ class DebugNode(Node):
             durability=QoSDurabilityPolicy.VOLATILE,
             depth=1
         )
-
-        self.declare_parameter("person_name",'Unintialized')
-        self.person_name = self.get_parameter("person_name").get_parameter_value().string_value
+        # action
+        self._action_client = ActionClient(self, DetectionAction, 'person_action')
 
         # pubs
         self._dbg_pub = self.create_publisher(Image, "dbg_image", 10)
-        self._center_pub = self.create_publisher(DetectionInfo, "center_point", 10)
 
         # subs
         image_sub = message_filters.Subscriber(
@@ -77,17 +76,39 @@ class DebugNode(Node):
         detections_sub = message_filters.Subscriber(
             self, DetectionArray, "detections", qos_profile=10)
         ###
-        face_sub = message_filters.Subscriber(
-            self, FaceBoxArray, "/adaface/adaface_msg",qos_profile=10)
+        # face_sub = message_filters.Subscriber(
+        #     self, FaceBoxArray, "/adaface/adaface_msg",qos_profile=10)
         ###
-        self._synchronizer = message_filters.ApproximateTimeSynchronizer(
-            (image_sub, detections_sub,face_sub), 10, 0.5)
-        #self._synchronizer = message_filters.ApproximateTimeSynchronizer((image_sub, detections_sub), 10, 0.5)
+        # self._synchronizer = message_filters.ApproximateTimeSynchronizer(
+        #     (image_sub, detections_sub,face_sub), 10, 0.5)
+        self._synchronizer = message_filters.ApproximateTimeSynchronizer((image_sub, detections_sub), 10, 0.5)
         self._synchronizer.registerCallback(self.detections_cb)
+    
+    def send_goal(self, goal, img):
+        person_bbox = DetectionAction.Goal()
+        person_bbox.detection = goal
+        person_bbox.image = img
+        self._action_client.wait_for_server()
+        self._send_goal_future = self._action_client.send_goal_async(person_bbox)
+        self._send_goal_future.add_done_callback(self.goal_response_callback)
+        return self._send_goal_future 
+    
+    def goal_response_callback(self, future):
+        goal_handle = DetectionAction.Result()
+        if not goal_handle.accepted:
+            self.get_logger().info('Goal rejected :(')
+            return
+        self.get_logger().info('Goal accepted :)')
 
+        self._get_result_future = goal_handle.get_result_async()
+        self._get_result_future.add_done_callback(self.get_result_callback)
+
+    def get_result_callback(self):
+        person_name = DetectionAction.Result().name
+        self.get_logger().info('Person Name: {0}'.format(person_name))
+        # rclpy.shutdown()
 
     def draw_box(self, cv_image: np.array, detection: Detection, face_detection: FaceBox) -> np.array:
-
         # get detection info
         score = detection.score
         box_msg: BoundingBox2D = detection.bbox
@@ -157,6 +178,7 @@ class DebugNode(Node):
 
             cv2.circle(cv_image, (int(kp.point.x), int(kp.point.y)),
                        5, color_k, -1, lineType=cv2.LINE_AA)
+
             #### Shoulder middle point!
             if str(kp.id) == '7' or str(kp.id) == '6':
                 sh_point[0] += kp.point.x
@@ -165,43 +187,33 @@ class DebugNode(Node):
         self.shoulder_center[detection.id] = [sh_point[0],sh_point[1]]
         cv2.circle(cv_image, (int(sh_point[0]), int(sh_point[1])),
                        5, (255,255,255), -1, lineType=cv2.LINE_AA)
+        self.get_logger().info('Person id : {} | depth point {}'.format(str(detection.id),[sh_point[0],sh_point[1]]))         
 
-        return cv_image , sh_point
+        return cv_image
 
-
-    def detections_cb(self, img_msg: Image, person_detection_msg: DetectionArray, face_detection_msg:FaceBoxArray) -> None:
+    def detections_cb(self, img_msg: Image, detection_msg: DetectionArray) -> None:
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg,"rgb8")
+
         detection: Detection
-        face_detection: FaceBox
-        
-        # 말이 안 되는데 얼굴 박스가 person 박스보다 많은 경우가 종종 생김 so bang ji yong
-        face_box_length = len(face_detection_msg.faceboxes)
-        # self.get_logger().info(f"Person length: {len(person_detection_msg.detections)} Face length: {len(face_detection_msg.faceboxes)} ")
-        for i, detection in enumerate(person_detection_msg.detections):
-            face_detection = face_detection_msg.faceboxes[i] if i < face_box_length else None
-            if face_detection:
-                detection.score = face_detection.score
+        face_detection : FaceBox
+
+        for i, detection in enumerate(detection_msg.detections):
+            if detection:
                 # 해당 사람 박스에 이름이 부여된 적이 없으며,
                 if detection.id not in self._face_name:
+                    # Client face recognition
+                    face_detection = self.send_goal(detection, img_msg)
                     # 감지된 얼굴이 unknown이 아니고, 감지된 얼굴이 이미 등장한 인물 아닐때
                     if face_detection.name != 'unknown' and face_detection.name not in self._face_id:
+                        detection.score = face_detection.score
                         self._face_name[detection.id] = face_detection.name
                         self._face_id[face_detection.name] = detection.id
                         detection.name = face_detection.name
-
                 else:
                     detection.name = self._face_name[detection.id]
-                    # self.get_logger().info(f'known person : {detection.name}')
+            
             cv_image = self.draw_mask(cv_image, detection)
-            cv_image,sh_point = self.draw_keypoints(cv_image, detection)
-            # When the input person is detected
-            if detection.name == self.person_name:
-                person_center = DetectionInfo()
-                person_center.header = person_detection_msg.header
-                person_center.x = sh_point[0]
-                person_center.y = sh_point[1]
-                self._center_pub.publish(person_center)
-                self.get_logger().info('Person name : {} | depth point {}'.format(str(detection.name),[sh_point[0],sh_point[1]]))         
+            cv_image = self.draw_keypoints(cv_image, detection)
             cv_image = self.draw_box(cv_image, detection,face_detection)
 
         # publish dbg image
