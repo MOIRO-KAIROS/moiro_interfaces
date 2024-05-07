@@ -41,6 +41,7 @@ from yolov8_msgs.msg import Detection
 from yolov8_msgs.msg import DetectionArray, DetectionInfo
 from yolov8_msgs.msg import FaceBox
 from yolov8_msgs.msg import FaceBoxArray
+from yolov8_msgs.srv import Person
 
 
 class DebugNode(Node):
@@ -67,6 +68,9 @@ class DebugNode(Node):
         self.declare_parameter("person_name",'Unintialized')
         self.person_name = self.get_parameter("person_name").get_parameter_value().string_value
 
+        self.get_logger().info('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-') 
+        self.get_logger().error(f'The Person Who You Want To Detect Is {self.person_name} !!!!')
+        self.get_logger().info('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
         # pubs
         self._dbg_pub = self.create_publisher(Image, "dbg_image", 10)
         self._center_pub = self.create_publisher(DetectionInfo, "center_point", 10)
@@ -76,18 +80,22 @@ class DebugNode(Node):
             self, Image, "image_raw", qos_profile=image_qos_profile)
         detections_sub = message_filters.Subscriber(
             self, DetectionArray, "detections", qos_profile=10)
-        ###
         face_sub = message_filters.Subscriber(
             self, FaceBoxArray, "/adaface/adaface_msg",qos_profile=10)
-        ###
         self._synchronizer = message_filters.ApproximateTimeSynchronizer(
             (image_sub, detections_sub,face_sub), 10, 0.5)
         #self._synchronizer = message_filters.ApproximateTimeSynchronizer((image_sub, detections_sub), 10, 0.5)
         self._synchronizer.registerCallback(self.detections_cb)
 
+        # services
+        self._srv = self.create_service(Person, 'person_name', self.person_setting)
+    
+    def person_setting(self, req: Person.Request, res: Person.Response ) -> Person.Response:
+        self.person_name = req.person_name
+        res.success_name = self.person_name
+        return res
 
     def draw_box(self, cv_image: np.array, detection: Detection, face_detection: FaceBox) -> np.array:
-
         # get detection info
         score = detection.score
         box_msg: BoundingBox2D = detection.bbox
@@ -188,11 +196,10 @@ class DebugNode(Node):
                         self._face_name[detection.id] = face_detection.name
                         self._face_id[face_detection.name] = detection.id
                         detection.name = face_detection.name
-
                 else:
                     detection.name = self._face_name[detection.id]
                     # self.get_logger().info(f'known person : {detection.name}')
-            cv_image = self.draw_mask(cv_image, detection)
+            # cv_image = self.draw_mask(cv_image, detection)
             cv_image,sh_point = self.draw_keypoints(cv_image, detection)
             # When the input person is detected
             if detection.name == self.person_name:
@@ -201,7 +208,7 @@ class DebugNode(Node):
                 person_center.x = sh_point[0]
                 person_center.y = sh_point[1]
                 self._center_pub.publish(person_center)
-                self.get_logger().info('Person name : {} | depth point {}'.format(str(detection.name),[sh_point[0],sh_point[1]]))         
+                # self.get_logger().info('Person name : {} | depth point {}'.format(str(detection.name),[sh_point[0],sh_point[1]]))         
             cv_image = self.draw_box(cv_image, detection,face_detection)
 
         # publish dbg image

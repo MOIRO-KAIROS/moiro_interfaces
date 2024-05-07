@@ -28,6 +28,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DetectionInfo.msg"
   "msg/FaceBox.msg"
   "msg/FaceBoxArray.msg"
+  "srv/Person.srv"
   DEPENDENCIES std_msgs geometry_msgs
 )
 ament_export_dependencies(rosidl_default_runtime)
