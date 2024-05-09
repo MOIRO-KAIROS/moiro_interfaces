@@ -96,54 +96,56 @@ class Adaface(Node):
     self._synchronizer.registerCallback(self.adaface_main)
 
   
-  def adaface_main(self, img_msg: Image, face_detect_msg: DetectionArray) -> None:
+  def adaface_main(self, img_msg: Image, detections_msg: DetectionArray) -> None:
         
         # convert image for align
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg)
 
-        # detection : Detection
-        detection_len = len(face_detect_msg.detections)
+        detection : Detection
+        # face_detections_msg = DetectionArray()
+        # face_detections_msg.header = img_msg.header
 
         keys_to_keep = []
-        for n in range(detection_len):
+        for n, detection in enumerate(detections_msg.detections):
           # 객체 이미지 위치 잡고 그걸 inference로 보낸다
-          x1 = np.clip(int(face_detect_msg.detections[n].bbox.center.position.x - face_detect_msg.detections[n].bbox.size.x / 2), 0, img_msg.width) # img_msg.width = 640 # ? 설정 시: 640 - 1
-          y1 = np.clip(int(face_detect_msg.detections[n].bbox.center.position.y - face_detect_msg.detections[n].bbox.size.y / 2), 0, img_msg.height) # img_msg.height = 480
-          x2 = np.clip(int(face_detect_msg.detections[n].bbox.center.position.x + face_detect_msg.detections[n].bbox.size.x / 2), 0, img_msg.width)
-          y2 = np.clip(int(face_detect_msg.detections[n].bbox.center.position.y + face_detect_msg.detections[n].bbox.size.y / 2), 0, img_msg.height)
+          x1 = np.clip(int(detection.bbox.center.position.x - detection.bbox.size.x / 2), 0, img_msg.width) # img_msg.width = 640 # ? 설정 시: 640 - 1
+          y1 = np.clip(int(detection.bbox.center.position.y - detection.bbox.size.y / 2), 0, img_msg.height) # img_msg.height = 480
+          x2 = np.clip(int(detection.bbox.center.position.x + detection.bbox.size.x / 2), 0, img_msg.width)
+          y2 = np.clip(int(detection.bbox.center.position.y + detection.bbox.size.y / 2), 0, img_msg.height)
           
           face_box, face_info = self.adaface.inference(cv_image[y1:y2,x1:x2])
 
           if face_box:
           # Assume that one person box = one face
-            face_detect_msg.detections[n].facebox.bbox.center.position.x = float(x1 + (face_box[0][2] + face_box[0][0])//2)
-            face_detect_msg.detections[n].facebox.bbox.size.x = float(face_box[0][2]- face_box[0][0])
-            face_detect_msg.detections[n].facebox.bbox.center.position.y = float(y1 + (face_box[0][3] + face_box[0][1])//2)
-            face_detect_msg.detections[n].facebox.bbox.size.y = float(face_box[0][3]- face_box[0][1])
+            detection.facebox.bbox.center.position.x = float(x1 + (face_box[0][2] + face_box[0][0])//2)
+            detection.facebox.bbox.size.x = float(face_box[0][2]- face_box[0][0])
+            detection.facebox.bbox.center.position.y = float(y1 + (face_box[0][3] + face_box[0][1])//2)
+            detection.facebox.bbox.size.y = float(face_box[0][3]- face_box[0][1])
 
             # face_detection.id = face_detection.id
-            face_detect_msg.detections[n].facebox.name = face_info[0]
-            face_detect_msg.detections[n].facebox.score = face_info[1]
-            face_detect_msg.detections[n].facebox.isdetect = True            
+            detection.facebox.name = face_info[0]
+            detection.facebox.score = face_info[1]
+            detection.facebox.isdetect = True            
           else:
-             face_detect_msg.detections[n].facebox.isdetect = False
-             face_detect_msg.detections[n].facebox.name = "no face"
+             detection.facebox.isdetect = False
+             detection.facebox.name = "no face"
 
           # dictionary 관련 + name update하기
-          keys_to_keep.append(face_detect_msg.detections[n].id)
+          keys_to_keep.append(detection.id)
             
-          if face_detect_msg.detections[n].facebox.name not in ["unknown", "no face"]:
-              if face_detect_msg.detections[n].id not in self._face_cache.keys() or self._face_cache[face_detect_msg.detections[n].id] in ["unknown", "no face"]:
-                  self._face_cache[face_detect_msg.detections[n].id] = face_detect_msg.detections[n].facebox.name
+          if detection.facebox.name not in ["unknown", "no face"]:
+              if detection.id not in self._face_cache.keys() or self._face_cache[detection.id] in ["unknown", "no face"]:
+                  self._face_cache[detection.id] = detection.facebox.name
               # else: penalty 주자
           else:
-              if face_detect_msg.detections[n].id not in self._face_cache.keys():
-                  self._face_cache[face_detect_msg.detections[n].id] = face_detect_msg.detections[n].facebox.name
+              if detection.id not in self._face_cache.keys():
+                  self._face_cache[detection.id] = detection.facebox.name
           # 실제 facebox.name을 반영 (dictionary 값을)
-          face_detect_msg.detections[n].facebox.name = self._face_cache[face_detect_msg.detections[n].id]
+          detection.facebox.name = self._face_cache[detection.id]
+          detections_msg.detections[n] = detection
         
         self.get_logger().info(f' dict : {self._face_cache}')
-        self._adaface_pub.publish(face_detect_msg)
+        self._adaface_pub.publish(detections_msg)
 
         keys_to_remove = [key for key in self._face_cache if key not in keys_to_keep]
         # 키 삭제
