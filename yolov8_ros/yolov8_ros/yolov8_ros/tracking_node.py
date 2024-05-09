@@ -164,9 +164,9 @@ class TrackingNode(Node):
 
                     # append msg
                     tracked_detections_msg.detections.append(tracked_detection)
-                    self.get_logger().info('\033[93m =================================================== \033[0m')
-                    self.get_logger().info('\033[93m {}  \033[0m'.format(tracked_detection.id)) # For Debugging
-                    self.get_logger().info('\033[93m =================================================== \033[0m')
+                    # self.get_logger().info('\033[93m =================================================== \033[0m')
+                    # self.get_logger().info('\033[93m {}  \033[0m'.format(tracked_detection.id)) # For Debugging
+                    # self.get_logger().info('\033[93m =================================================== \033[0m')
                     
         # publish detections
         self._pub.publish(tracked_detections_msg)
