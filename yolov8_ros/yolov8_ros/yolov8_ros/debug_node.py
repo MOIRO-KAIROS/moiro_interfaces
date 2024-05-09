@@ -45,9 +45,7 @@ class DebugNode(Node):
 
     def __init__(self) -> None:
         super().__init__("debug_node")
-        self._class_to_color = {}
-        # self._face_name = {}
-        self._face_cache = {}
+        # self._face_cache = {}
         self.cv_bridge = CvBridge()
         self.shoulder_center = {}
 
@@ -118,11 +116,11 @@ class DebugNode(Node):
             
             cv2.rectangle(cv_image, min_face, max_face, (255,255,255), 2)
 
-        label = "({}) {}".format(detection.id, self._face_cache[detection.id])
-        if self._face_cache[detection.id] == "unknown":
+        label = "({}) {}".format(detection.id, detection.facebox.name)
+        if detection.facebox.name == "unknown":
             cv2.putText(cv_image, label, pos, font,
                 0.6, (255,255,255), 1, cv2.LINE_AA)
-        elif self._face_cache[detection.id] == "no face":
+        elif detection.facebox.name == "no face":
             cv2.putText(cv_image, label, pos, font,
                 0.6, (135, 204, 255), 1, cv2.LINE_AA)
         else:
@@ -178,20 +176,9 @@ class DebugNode(Node):
 
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg,"rgb8")
         detection: Detection
-        keys_to_keep = []
         # 말이 안 되는데 얼굴 박스가 person 박스보다 많은 경우가 종종 생김 so bang ji yong
         # self.get_logger().info(f"Person length: {len(person_detection_msg.detections)} Face length: {len(face_detection_msg.faceboxes)} ")
         for i, detection in enumerate(face_detection_msg.detections):
-            keys_to_keep.append(detection.id)
-            
-            if detection.facebox.name not in ["unknown", "no face"]:
-                if detection.id not in self._face_cache.keys() or self._face_cache[detection.id] in ["unknown", "no face"]:
-                    self._face_cache[detection.id] = detection.facebox.name
-                # else: penalty 주자
-            else:
-                if detection.id not in self._face_cache.keys():
-                    self._face_cache[detection.id] = detection.facebox.name
-            
             cv_image, sh_point = self.draw_keypoints(cv_image, detection)
             # When the input person is detected
             # if self._face_cache[detection.id] == self.person_name:
@@ -202,15 +189,9 @@ class DebugNode(Node):
             #     self._center_pub.publish(person_center)
                 # self.get_logger().info('Person name : {} | depth point {}'.format(str(detection.name),[sh_point[0],sh_point[1]]))         
             cv_image = self.draw_box(cv_image, detection)
-        self.get_logger().info(f' dict : {self._face_cache}')
             
         # publish dbg image
         self._dbg_pub.publish(self.cv_bridge.cv2_to_imgmsg(cv_image, encoding=img_msg.encoding))
-
-        keys_to_remove = [key for key in self._face_cache if key not in keys_to_keep]
-        # 키 삭제
-        for key in keys_to_remove:
-            del self._face_cache[key]
 
         end = time.time()
         self.get_logger().info(f"\033[93m >>>>>>>>>>>>>>>>>>>>>>>>>> {end - start:.5f} sec >>>>>>>>>>>>>>>>>>>>>>>>>> \033[0m")
