@@ -102,9 +102,7 @@ class Adaface(Node):
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg)
 
         detection : Detection
-        # face_detections_msg = DetectionArray()
-        # face_detections_msg.header = img_msg.header
-
+        
         keys_to_keep = []
         for n, detection in enumerate(detections_msg.detections):
           # 객체 이미지 위치 잡고 그걸 inference로 보낸다
@@ -122,7 +120,6 @@ class Adaface(Node):
             detection.facebox.bbox.center.position.y = float(y1 + (face_box[0][3] + face_box[0][1])//2)
             detection.facebox.bbox.size.y = float(face_box[0][3]- face_box[0][1])
 
-            # face_detection.id = face_detection.id
             detection.facebox.name = face_info[0]
             detection.facebox.score = face_info[1]
             detection.facebox.isdetect = True            

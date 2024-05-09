@@ -45,7 +45,6 @@ class DebugNode(Node):
 
     def __init__(self) -> None:
         super().__init__("debug_node")
-        # self._face_cache = {}
         self.cv_bridge = CvBridge()
         self.shoulder_center = {}
 
@@ -176,8 +175,7 @@ class DebugNode(Node):
 
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg,"rgb8")
         detection: Detection
-        # 말이 안 되는데 얼굴 박스가 person 박스보다 많은 경우가 종종 생김 so bang ji yong
-        # self.get_logger().info(f"Person length: {len(person_detection_msg.detections)} Face length: {len(face_detection_msg.faceboxes)} ")
+        
         for i, detection in enumerate(face_detection_msg.detections):
             cv_image, sh_point = self.draw_keypoints(cv_image, detection)
             # When the input person is detected
