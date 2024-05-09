@@ -182,6 +182,7 @@ class DebugNode(Node):
                 person_center.header = face_detection_msg.header
                 person_center.x = float(sh_point[0])
                 person_center.y = float(sh_point[1])
+                person_center.name = self.person_name
                 self._center_pub.publish(person_center)
                 # self.get_logger().info('Person name : {} | depth point {}'.format(str(detection.name),[sh_point[0],sh_point[1]]))         
             cv_image = self.draw_box(cv_image, detection)

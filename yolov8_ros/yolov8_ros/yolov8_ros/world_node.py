@@ -43,6 +43,7 @@ class WorldNode(Node):
         self.pose_publisher = self.create_publisher(PoseStamped, 'person_position', 10)
         self.x = 0
         self.y = 0
+        # self.name = ''
         self.depth = 0
         self.non_detected = True
 
@@ -61,6 +62,7 @@ class WorldNode(Node):
         depth_frame = self.cv_bridge.imgmsg_to_cv2(depth_msg)
         self.x = int(point_msg.x)
         self.y = int(point_msg.y)
+        self.name = point_msg.name
         self.depth = depth_frame[self.y][self.x]
         if self.x != 0:
             self.non_detected = False
@@ -112,7 +114,7 @@ class WorldNode(Node):
                     pose_msg.position.x = object_position_world_frame[0]
                     pose_msg.position.y = object_position_world_frame[1]
                     pose_msg.position.z = object_position_world_frame[2]
-                    self.get_logger().info(f'world x:{pose_msg.position.x} | y:{pose_msg.position.y} | z:{pose_msg.position.z} ')
+                    self.get_logger().info(f' ({self.name})  x:{pose_msg.position.x} | y:{pose_msg.position.y} | z:{pose_msg.position.z} ')
 
                     self.publish_pose(pose_msg)  # Publish the transformed pose
 
