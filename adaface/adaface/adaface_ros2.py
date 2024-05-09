@@ -12,10 +12,6 @@ from cv_bridge import CvBridge
 from yolov8_msgs.msg import Detection
 from yolov8_msgs.msg import DetectionArray
 from sensor_msgs.msg._image import Image
-from yolov8_msgs.msg import FaceBox
-from yolov8_msgs.msg import FaceBoxArray
-# from visualization_msgs.msg import Marker
-# from visualization_msgs.msg import MarkerArray
 
 import numpy as np
 import sys
@@ -80,7 +76,7 @@ class Adaface(Node):
     )
 
     #pubs
-    self._adaface_pub = self.create_publisher(FaceBoxArray, 'adaface_msg',10)
+    self._adaface_pub = self.create_publisher(DetectionArray, 'adaface_msg',10)
 
     ## subs
     # 이미지와 message를 subscribe
@@ -98,22 +94,20 @@ class Adaface(Node):
     self._synchronizer.registerCallback(self.adaface_main)
 
   
-  def adaface_main(self, img_msg: Image, tracking_msg: DetectionArray) -> None:
-        face_detection_msg = FaceBoxArray()
-        face_detection_msg.header = img_msg.header
-
+  def adaface_main(self, img_msg: Image, face_detection_msg: DetectionArray) -> None:
+        
         # convert image for align
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg)
 
-        detection : Detection
-        face_detection = FaceBox()
-        for detection in tracking_msg.detections:
-          face_detection.id = detection.id
+        # detection : Detection
+        detection_len = len(face_detection_msg.detections)
+        for id in range(detection_len):
           # 객체 이미지 위치 잡고 그걸 inference로 보낸다
-          x1 = np.clip(int(detection.bbox.center.position.x - detection.bbox.size.x / 2), 0, img_msg.width) # img_msg.width = 640 # ? 설정 시: 640 - 1
-          y1 = np.clip(int(detection.bbox.center.position.y - detection.bbox.size.y / 2), 0, img_msg.height) # img_msg.height = 480
-          x2 = np.clip(int(detection.bbox.center.position.x + detection.bbox.size.x / 2), 0, img_msg.width)
-          y2 = np.clip(int(detection.bbox.center.position.y + detection.bbox.size.y / 2), 0, img_msg.height)
+          x1 = np.clip(int(face_detection_msg.detections[id].bbox.center.position.x - face_detection_msg.detections[id].bbox.size.x / 2), 0, img_msg.width) # img_msg.width = 640 # ? 설정 시: 640 - 1
+          y1 = np.clip(int(face_detection_msg.detections[id].bbox.center.position.y - face_detection_msg.detections[id].bbox.size.y / 2), 0, img_msg.height) # img_msg.height = 480
+          x2 = np.clip(int(face_detection_msg.detections[id].bbox.center.position.x + face_detection_msg.detections[id].bbox.size.x / 2), 0, img_msg.width)
+          y2 = np.clip(int(face_detection_msg.detections[id].bbox.center.position.y + face_detection_msg.detections[id].bbox.size.y / 2), 0, img_msg.height)
+          
           # self.get_logger().info('===================================================')
           # self.get_logger().info('body | {}, {}, {}, {}'.format(x1, x2, y1, y2)) # For Debugging
           # self.get_logger().info('===================================================')
@@ -122,24 +116,32 @@ class Adaface(Node):
           if face_box:
           # Assume that one person box = one face
             # print(type(x1 + (face_box[0][2] + face_box[0][0])//2))
-            face_detection.bbox.center.position.x = float(x1 + (face_box[0][2] + face_box[0][0])//2)
-            face_detection.bbox.size.x = float(face_box[0][2]- face_box[0][0])
-            face_detection.bbox.center.position.y = float(y1 + (face_box[0][3] + face_box[0][1])//2)
-            face_detection.bbox.size.y = float(face_box[0][3]- face_box[0][1])
+            face_detection_msg.detections[id].facebox.bbox.center.position.x = float(x1 + (face_box[0][2] + face_box[0][0])//2)
+            face_detection_msg.detections[id].facebox.bbox.size.x = float(face_box[0][2]- face_box[0][0])
+            face_detection_msg.detections[id].facebox.bbox.center.position.y = float(y1 + (face_box[0][3] + face_box[0][1])//2)
+            face_detection_msg.detections[id].facebox.bbox.size.y = float(face_box[0][3]- face_box[0][1])
 
             # face_detection.id = face_detection.id
-            face_detection.name = face_info[0]
-            face_detection.score = face_info[1]
+            face_detection_msg.detections[id].facebox.name = face_info[0]
+            face_detection_msg.detections[id].facebox.score = face_info[1]
+            face_detection_msg.detections[id].facebox.isdetect = True            
+            # face_detection_msg.detections.faceboxes.append(face_detection)
+            # self.get_logger().info('\033[93m =================================================== \033[0m')
+            # self.get_logger().info('\033[93m {}  \033[0m'.format(detection.facebox.bbox)) # For Debugging
+            # self.get_logger().info('\033[93m =================================================== \033[0m')
+          else:
+             face_detection_msg.detections[id].facebox.isdetect = False
+             face_detection_msg.detections[id].facebox.name = "no face"
 
-            # face_detection_msg.faceboxes.append(face_detection)
-            self.get_logger().info('===============================================================')
-            self.get_logger().info('center | x : {}, y : {}, Person Name | {}'.format(face_detection.bbox.center.position.x ,face_detection.bbox.center.position.y ,face_detection.name)) # For Debugging
-            self.get_logger().info('===============================================================')
         # publish face information (id,bbox)
-            face_detection_msg.faceboxes.append(face_detection)
+            # face_detection_msg.detections.faceboxes.append(face_detection)
           # else:
             #  self.get_logger().info('No face ~')
-        # self.get_logger().info(f"Person length: {len(tracking_msg.detections)} Face length: {len(face_detection_msg.faceboxes)} ")
+        # self.get_logger().info(f"Person length: {len(tracking_msg.detections)} Face length: {len(face_detection_msg.detections.faceboxes)} ")
+          # self.get_logger().info('\033[93m =================================================== \033[0m')
+          # self.get_logger().info('\033[93m {}  \033[0m'.format(face_detection_msg.detections[id].facebox)) # For Debugging
+          # self.get_logger().info('\033[93m =================================================== \033[0m')
+            
         self._adaface_pub.publish(face_detection_msg)
 
 def main(args=None): 

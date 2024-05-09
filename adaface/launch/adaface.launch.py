@@ -62,7 +62,7 @@ def generate_launch_description():
         }],
         remappings=[
             ("image_raw", LaunchConfiguration("input_image_topic")),
-            ("detections", LaunchConfiguration("detections"))
+            ("detections", LaunchConfiguration("detections")) # /yolo/tracking node
         ],
         output='screen',
     )

@@ -120,7 +120,7 @@ def generate_launch_description():
         }],
         remappings=[
             ("image_raw", input_image_topic),
-            ("detections", "tracking")
+            ("detections", "/adaface/adaface_msg")
         ]
     )
 
