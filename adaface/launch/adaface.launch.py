@@ -81,15 +81,15 @@ def generate_launch_description():
     )
 
     # Include launch descriptions
-    realsense_launch_cmd = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([FindPackageShare("realsense2_camera"), '/launch/rs_launch.py']),
-        launch_arguments=[
-            ('depth_module.profile', '640x480x60'),
-            ('rgb_camera.profile', '640x480x60'),
-            ('pointcloud.enable', 'true')
-        ] if LaunchConfiguration("video") == "0" else [],
-        condition=IfCondition(PythonExpression([LaunchConfiguration("video"), '== 0'])),
-    )
+    # realsense_launch_cmd = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource([FindPackageShare("realsense2_camera"), '/launch/rs_launch.py']),
+    #     launch_arguments=[
+    #         ('depth_module.profile', '640x480x60'),
+    #         ('rgb_camera.profile', '640x480x60'),
+    #         ('pointcloud.enable', 'true')
+    #     ] if LaunchConfiguration("video") == "0" else [],
+    #     condition=IfCondition(PythonExpression([LaunchConfiguration("video"), '== 0'])),
+    # )
 
     yolov8_launch_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([FindPackageShare("yolov8_bringup"), '/launch/yolov8.launch.py']),
@@ -107,6 +107,6 @@ def generate_launch_description():
     # Add actions to launch description
     [ld.add_action(action) for action in launch_arguments]
     [ld.add_action(action) for action in [webcam_topic_cmd,video_topic_cmd]]
-    [ld.add_action(action) for action in [video_publisher_node, realsense_launch_cmd, yolov8_launch_cmd,face_recognition_node]]
+    [ld.add_action(action) for action in [video_publisher_node, yolov8_launch_cmd,face_recognition_node]] # realsense_launch_cmd
 
     return ld

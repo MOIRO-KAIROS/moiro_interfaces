@@ -68,6 +68,7 @@ class Adaface(Node):
     )
 
     self._face_cache = {}
+    # self._penalty = {}
     self.adaface = AdaFace(
         model=model,
         option=option,
@@ -131,14 +132,20 @@ class Adaface(Node):
           keys_to_keep.append(detection.id)
             
           if detection.facebox.name not in ["unknown", "no face"]:
-              if detection.id not in self._face_cache.keys() or self._face_cache[detection.id] in ["unknown", "no face"]:
-                  self._face_cache[detection.id] = detection.facebox.name
-              # else: penalty 주자
+              if detection.id not in self._face_cache.keys() or self._face_cache[detection.id][0] in ["unknown", "no face"]:
+                  self._face_cache[detection.id] = [detection.facebox.name, 0]
+              else: # penalty 주자 (minha != yeonju)
+                if self._face_cache[detection.id][0] != detection.facebox.name:
+                  self._face_cache[detection.id][1] += 1
+                else: # 연속이 아니면 0으로 초기화
+                   self._face_cache[detection.id][1] = 0
+                if self._face_cache[detection.id][1] == 5:
+                  self._face_cache[detection.id] = [detection.facebox.name, 0]
           else:
               if detection.id not in self._face_cache.keys():
-                  self._face_cache[detection.id] = detection.facebox.name
+                  self._face_cache[detection.id] = [detection.facebox.name, 0]
           # 실제 facebox.name을 반영 (dictionary 값을)
-          detection.facebox.name = self._face_cache[detection.id]
+          detection.facebox.name = self._face_cache[detection.id][0]
           detections_msg.detections[n] = detection
         
         self.get_logger().info(f' dict : {self._face_cache}')
