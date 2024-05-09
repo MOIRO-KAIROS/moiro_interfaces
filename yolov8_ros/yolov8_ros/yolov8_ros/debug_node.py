@@ -45,9 +45,7 @@ class DebugNode(Node):
 
     def __init__(self) -> None:
         super().__init__("debug_node")
-        # self._face_cache = {}
         self.cv_bridge = CvBridge()
-        self.shoulder_center = {}
 
         # params
         self.declare_parameter("image_reliability",
@@ -164,7 +162,6 @@ class DebugNode(Node):
                 sh_point[0] += kp.point.x
                 sh_point[1] += kp.point.y
         sh_point[0],sh_point[1] = sh_point[0]//2,sh_point[1]//2
-        self.shoulder_center[detection.id] = [sh_point[0],sh_point[1]]
         cv2.circle(cv_image, (int(sh_point[0]), int(sh_point[1])),
                        5, (255,255,255), -1, lineType=cv2.LINE_AA)
 
@@ -176,17 +173,17 @@ class DebugNode(Node):
 
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg,"rgb8")
         detection: Detection
-        # 말이 안 되는데 얼굴 박스가 person 박스보다 많은 경우가 종종 생김 so bang ji yong
-        # self.get_logger().info(f"Person length: {len(person_detection_msg.detections)} Face length: {len(face_detection_msg.faceboxes)} ")
-        for i, detection in enumerate(face_detection_msg.detections):
+        
+        for detection in face_detection_msg.detections:
             cv_image, sh_point = self.draw_keypoints(cv_image, detection)
             # When the input person is detected
-            # if self._face_cache[detection.id] == self.person_name:
-            #     person_center = DetectionInfo()
-            #     person_center.header = face_detection_msg.header
-            #     person_center.x = float(sh_point[0])
-            #     person_center.y = float(sh_point[1])
-            #     self._center_pub.publish(person_center)
+            if detection.facebox.name == self.person_name:
+                person_center = DetectionInfo()
+                person_center.header = face_detection_msg.header
+                person_center.x = float(sh_point[0])
+                person_center.y = float(sh_point[1])
+                person_center.name = self.person_name
+                self._center_pub.publish(person_center)
                 # self.get_logger().info('Person name : {} | depth point {}'.format(str(detection.name),[sh_point[0],sh_point[1]]))         
             cv_image = self.draw_box(cv_image, detection)
             
