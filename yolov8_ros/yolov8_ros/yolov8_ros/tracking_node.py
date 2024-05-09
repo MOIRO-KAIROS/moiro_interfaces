@@ -83,7 +83,26 @@ class TrackingNode(Node):
 
         assert cfg.tracker_type in ["bytetrack", "botsort"], \
             f"Only support 'bytetrack' and 'botsort' for now, but got '{cfg.tracker_type}'"
-        tracker = TRACKER_MAP[cfg.tracker_type](args=cfg, frame_rate=1)
+        '''
+        # Ultralytics YOLO 🚀, AGPL-3.0 license
+        # Default YOLO tracker settings for ByteTrack tracker https://github.com/ifzhang/ByteTrack
+
+        tracker_type: bytetrack # tracker type, ['botsort', 'bytetrack']
+        track_high_thresh: 0.5 # threshold for the first association
+        track_low_thresh: 0.1 # threshold for the second association
+        new_track_thresh: 0.6 # threshold for init new track if the detection does not match any tracks
+        track_buffer: 30 # buffer to calculate the time when to remove tracks
+        match_thresh: 0.8 # threshold for matching tracks
+        # min_box_area: 10  # threshold for min box areas(for tracker evaluation, not used for now)
+        # mot20: False  # for tracker evaluation(not used for now)
+        
+        # ex)
+        cfg.match_thresh = 0.9
+        self.get_logger().info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+        self.get_logger().info(str(cfg))
+        '''
+       
+        tracker = TRACKER_MAP[cfg.tracker_type](args=cfg, frame_rate=60)
         return tracker
 
     def detections_cb(self, img_msg: Image, detections_msg: DetectionArray) -> None:
@@ -119,7 +138,7 @@ class TrackingNode(Node):
             )
 
             tracks = self.tracker.update(det, cv_image)
-
+                        
             if len(tracks) > 0:
 
                 for t in tracks:
@@ -145,7 +164,10 @@ class TrackingNode(Node):
 
                     # append msg
                     tracked_detections_msg.detections.append(tracked_detection)
-
+                    self.get_logger().info('\033[93m =================================================== \033[0m')
+                    self.get_logger().info('\033[93m {}  \033[0m'.format(tracked_detection.id)) # For Debugging
+                    self.get_logger().info('\033[93m =================================================== \033[0m')
+                    
         # publish detections
         self._pub.publish(tracked_detections_msg)
 
