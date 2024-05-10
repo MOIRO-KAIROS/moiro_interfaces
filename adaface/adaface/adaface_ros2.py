@@ -107,20 +107,20 @@ class Adaface(Node):
         keys_to_keep = []
         for n, detection in enumerate(detections_msg.detections):
           # 객체 이미지 위치 잡고 그걸 inference로 보낸다
-          x1 = np.clip(int(detection.bbox.center.position.x - detection.bbox.size.x / 2), 0, img_msg.width) # img_msg.width = 640 # ? 설정 시: 640 - 1
-          y1 = np.clip(int(detection.bbox.center.position.y - detection.bbox.size.y / 2), 0, img_msg.height) # img_msg.height = 480
-          x2 = np.clip(int(detection.bbox.center.position.x + detection.bbox.size.x / 2), 0, img_msg.width)
-          y2 = np.clip(int(detection.bbox.center.position.y + detection.bbox.size.y / 2), 0, img_msg.height)
-          
+          x1 = int(np.clip((detection.bbox.center.position.x - detection.bbox.size.x / 2), 0, img_msg.width)) # img_msg.width = 640 # ? 설정 시: 640 - 1
+          y1 = int(np.clip((detection.bbox.center.position.y - detection.bbox.size.y / 2), 0, img_msg.height)) # img_msg.height = 480
+          x2 = int(np.clip((detection.bbox.center.position.x + detection.bbox.size.x / 2), 0, img_msg.width))
+          y2 = int(np.clip((detection.bbox.center.position.y + detection.bbox.size.y / 2), 0, img_msg.height))
+
+          detection.bboxyolo.leftup = [x1, y1]
+          detection.bboxyolo.rightbottom = [x2, y2]
           face_box, face_info = self.adaface.inference(cv_image[y1:y2,x1:x2])
 
-          if face_box:
+          if face_box: # 굳이 변환할 필요가 없지
           # Assume that one person box = one face
-            detection.facebox.bbox.center.position.x = float(x1 + (face_box[0][2] + face_box[0][0])//2)
-            detection.facebox.bbox.size.x = float(face_box[0][2]- face_box[0][0])
-            detection.facebox.bbox.center.position.y = float(y1 + (face_box[0][3] + face_box[0][1])//2)
-            detection.facebox.bbox.size.y = float(face_box[0][3]- face_box[0][1])
-
+            detection.facebox.bbox.leftup = [x1 + face_box[0][0] , y1 + face_box[0][1]]
+            detection.facebox.bbox.rightbottom = [x1 + face_box[0][2], y1 + face_box[0][3]]
+            
             detection.facebox.name = face_info[0]
             detection.facebox.score = face_info[1]
             detection.facebox.isdetect = True            
@@ -139,7 +139,7 @@ class Adaface(Node):
                   self._face_cache[detection.id][1] += 1
                 else: # 연속이 아니면 0으로 초기화
                    self._face_cache[detection.id][1] = 0
-                if self._face_cache[detection.id][1] == 5:
+                if self._face_cache[detection.id][1] == 3:
                   self._face_cache[detection.id] = [detection.facebox.name, 0]
           else:
               if detection.id not in self._face_cache.keys():
@@ -148,7 +148,7 @@ class Adaface(Node):
           detection.facebox.name = self._face_cache[detection.id][0]
           detections_msg.detections[n] = detection
         
-        self.get_logger().info(f' dict : {self._face_cache}')
+        # self.get_logger().info(f' dict : {self._face_cache}')
         self._adaface_pub.publish(detections_msg)
 
         keys_to_remove = [key for key in self._face_cache if key not in keys_to_keep]
