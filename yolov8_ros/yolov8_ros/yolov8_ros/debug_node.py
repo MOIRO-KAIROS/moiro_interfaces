@@ -20,6 +20,7 @@ from typing import Tuple
 
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.duration import Duration
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
@@ -29,7 +30,7 @@ from rclpy.qos import QoSReliabilityPolicy
 import message_filters
 from cv_bridge import CvBridge
 from ultralytics.utils.plotting import Annotator, colors
-import time
+# import time
 
 from sensor_msgs.msg import Image
 from yolov8_msgs.msg import KeyPoint2D
@@ -150,7 +151,7 @@ class DebugNode(Node):
 
 
     def detections_cb(self, img_msg: Image, face_detection_msg: DetectionArray) -> None:
-        start = time.time()
+        # start = time.time()
 
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg,"rgb8")
         detection: Detection
@@ -171,7 +172,7 @@ class DebugNode(Node):
         # publish dbg image
         self._dbg_pub.publish(self.cv_bridge.cv2_to_imgmsg(cv_image, encoding=img_msg.encoding))
 
-        end = time.time()
+        # end = time.time()
         # self.get_logger().info(f"\033[93m >>>>>>>>>>>>>>>>>>>>>>>>>> {end - start:.5f} sec >>>>>>>>>>>>>>>>>>>>>>>>>> \033[0m")
 
 
@@ -179,6 +180,11 @@ class DebugNode(Node):
 def main():
     rclpy.init()
     node = DebugNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+
+    try:
+        executor.spin()
+    finally:
+        executor.remove_node(node)
+        rclpy.shutdown()
