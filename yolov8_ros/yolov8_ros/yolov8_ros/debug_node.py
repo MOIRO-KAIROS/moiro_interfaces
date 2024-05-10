@@ -32,13 +32,8 @@ from ultralytics.utils.plotting import Annotator, colors
 import time
 
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Point
-from visualization_msgs.msg import Marker
-from visualization_msgs.msg import MarkerArray
-from yolov8_msgs.msg import BoundingBox2D
 from yolov8_msgs.msg import KeyPoint2D
-from yolov8_msgs.msg import Detection
-from yolov8_msgs.msg import DetectionArray, DetectionInfo
+from yolov8_msgs.msg import Detection, DetectionArray, DetectionInfo
 from yolov8_msgs.srv import Person
 
 class DebugNode(Node):
@@ -88,32 +83,21 @@ class DebugNode(Node):
         return res
 
     def draw_box(self, cv_image: np.array, detection: Detection) -> np.array:
-        # get detection info
-        box_msg: BoundingBox2D = detection.bbox
+        # draw person box
+        cv2.rectangle(cv_image, detection.bboxyolo.leftup, detection.bboxyolo.rightbottom, (135, 204, 255), 2)
 
-        min_pt = (round(box_msg.center.position.x - box_msg.size.x / 2.0),
-            round(box_msg.center.position.y - box_msg.size.y / 2.0))
-        max_pt = (round(box_msg.center.position.x + box_msg.size.x / 2.0),
-            round(box_msg.center.position.y + box_msg.size.y / 2.0))
-        
+        # draw face box
+        if detection.facebox.isdetect: # 얼굴 좌표가 없다 = 얼굴 이름도 없다 하지만 바운딩박스의 이름은 array 있으면 찾을 수 있다.
+            # self.get_logger().info('\033[93m =================================================== \033[0m')
+            # self.get_logger().info('\033[93m 얼굴 좌표 있을 때: {}  \033[0m'.format(detection)) # For Debugging
+            # self.get_logger().info('\033[93m =================================================== \033[0m')
+            
+            cv2.rectangle(cv_image, detection.facebox.bbox.leftup, detection.facebox.bbox.rightbottom, (255,255,255), 2)
+
         # write text
         font = cv2.FONT_HERSHEY_COMPLEX
-        pos = (min_pt[0] + 25, max_pt[1] - 25)
+        pos = (detection.bboxyolo.leftup[0] + 25, detection.bboxyolo.rightbottom[1] - 25)
         
-        if detection.facebox.isdetect: # 얼굴 좌표가 없다 = 얼굴 이름도 없다 하지만 바운딩박스의 이름은 array 있으면 찾을 수 있다.
-            self.get_logger().info('\033[93m =================================================== \033[0m')
-            self.get_logger().info('\033[93m 얼굴 좌표 있을 때: {}  \033[0m'.format(detection)) # For Debugging
-            self.get_logger().info('\033[93m =================================================== \033[0m')
-            
-            face_box_msg: BoundingBox2D = detection.facebox.bbox
-
-            min_face = (round(face_box_msg.center.position.x - face_box_msg.size.x / 2.0),
-                  round(face_box_msg.center.position.y - face_box_msg.size.y / 2.0))
-            max_face = (round(face_box_msg.center.position.x + face_box_msg.size.x / 2.0),
-                  round(face_box_msg.center.position.y + face_box_msg.size.y / 2.0))
-            
-            cv2.rectangle(cv_image, min_face, max_face, (255,255,255), 2)
-
         label = "({}) {}".format(detection.id, detection.facebox.name)
         if detection.facebox.name == "unknown":
             cv2.putText(cv_image, label, pos, font,
@@ -124,9 +108,6 @@ class DebugNode(Node):
         else:
             cv2.putText(cv_image, label, pos, font,
                 0.6, (0,255,0), 1, cv2.LINE_AA)
-
-        # draw person box
-        cv2.rectangle(cv_image, min_pt, max_pt, (135, 204, 255), 2)
 
         return cv_image
 
@@ -191,7 +172,7 @@ class DebugNode(Node):
         self._dbg_pub.publish(self.cv_bridge.cv2_to_imgmsg(cv_image, encoding=img_msg.encoding))
 
         end = time.time()
-        self.get_logger().info(f"\033[93m >>>>>>>>>>>>>>>>>>>>>>>>>> {end - start:.5f} sec >>>>>>>>>>>>>>>>>>>>>>>>>> \033[0m")
+        # self.get_logger().info(f"\033[93m >>>>>>>>>>>>>>>>>>>>>>>>>> {end - start:.5f} sec >>>>>>>>>>>>>>>>>>>>>>>>>> \033[0m")
 
 
 

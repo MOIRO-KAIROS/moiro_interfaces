@@ -6,5 +6,5 @@ float64 score
 
 bool isdetect
 
-# 2D bounding box surrounding the object in pixels
-yolov8_msgs/BoundingBox2D bbox
+# YOLO format's 2D bounding box surrounding the object in pixels
+yolov8_msgs/BBoxYolo bbox
