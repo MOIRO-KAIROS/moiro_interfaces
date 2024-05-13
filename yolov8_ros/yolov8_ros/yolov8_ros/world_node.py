@@ -79,8 +79,8 @@ class WorldNode(Node):
             rclpy.spin_once(self)
             if not self.non_detected:
                 # Convert pixel coordinates to camera coordinates
-                image_center = [321.72564697, 241.86355591]  # Assuming image center at (640, 360)
-                focal_length = 384.64208984  # Focal length in pixels (example value)
+                image_center = [320.1998291 , 238.22215271]  # Assuming image center at (640, 360)
+                focal_length = 381.98086548  # Focal length in pixels (example value)
                 camera_coords = self.pixel_to_camera_coordinates(self.x, self.y, self.depth,
                                                                  focal_length, image_center)
 
