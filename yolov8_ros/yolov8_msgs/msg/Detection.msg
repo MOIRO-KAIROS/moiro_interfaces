@@ -6,7 +6,7 @@ string class_name
 float64 score
 
 # ID for tracking
-int32 id
+string id
 # is bbox
 bool istrack
 

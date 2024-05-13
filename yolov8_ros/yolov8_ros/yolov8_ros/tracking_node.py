@@ -18,11 +18,13 @@ import numpy as np
 
 import rclpy
 from rclpy.node import Node
-from rclpy.executors import MultiThreadedExecutor
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
 from rclpy.qos import QoSDurabilityPolicy
 from rclpy.qos import QoSReliabilityPolicy
+from rclpy.lifecycle import LifecycleNode
+from rclpy.lifecycle import TransitionCallbackReturn
+from rclpy.lifecycle import LifecycleState
 
 import message_filters
 from cv_bridge import CvBridge
@@ -38,31 +40,41 @@ from yolov8_msgs.msg import Detection
 from yolov8_msgs.msg import DetectionArray
 
 
-class TrackingNode(Node):
+class TrackingNode(LifecycleNode):
 
     def __init__(self) -> None:
         super().__init__("tracking_node")
 
         # params
         self.declare_parameter("tracker", "bytetrack.yaml")
-        tracker = self.get_parameter(
-            "tracker").get_parameter_value().string_value
-
         self.declare_parameter("image_reliability",
                                QoSReliabilityPolicy.BEST_EFFORT)
+
+        self.cv_bridge = CvBridge()
+
+    def on_configure(self, state: LifecycleState) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Configuring {self.get_name()}')
+
+        tracker_name = self.get_parameter(
+            "tracker").get_parameter_value().string_value
+
+        self.image_reliability = self.get_parameter(
+            "image_reliability").get_parameter_value().integer_value
+
+        self.tracker = self.create_tracker(tracker_name)
+        self._pub = self.create_publisher(DetectionArray, "tracking", 10)
+
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_activate(self, state: LifecycleState) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Activating {self.get_name()}')
+
         image_qos_profile = QoSProfile(
-            reliability=self.get_parameter(
-                "image_reliability").get_parameter_value().integer_value,
+            reliability=self.image_reliability,
             history=QoSHistoryPolicy.KEEP_LAST,
             durability=QoSDurabilityPolicy.VOLATILE,
             depth=1
         )
-
-        self.cv_bridge = CvBridge()
-        self.tracker = self.create_tracker(tracker)
-
-        # pubs
-        self._pub = self.create_publisher(DetectionArray, "tracking", 10)
 
         # subs
         image_sub = message_filters.Subscriber(
@@ -74,6 +86,26 @@ class TrackingNode(Node):
             (image_sub, detections_sub), 10, 0.5)
         self._synchronizer.registerCallback(self.detections_cb)
 
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_deactivate(self, state: LifecycleState) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Deactivating {self.get_name()}')
+
+        self.destroy_subscription(self.image_sub.sub)
+        self.destroy_subscription(self.detections_sub.sub)
+
+        del self._synchronizer
+        self._synchronizer = None
+
+        return TransitionCallbackReturn.SUCCESS
+
+    def on_cleanup(self, state: LifecycleState) -> TransitionCallbackReturn:
+        self.get_logger().info(f'Cleaning up {self.get_name()}')
+
+        del self.tracker
+
+        return TransitionCallbackReturn.SUCCESS
+
     def create_tracker(self, tracker_yaml: str) -> BaseTrack:
 
         TRACKER_MAP = {"bytetrack": BYTETracker, "botsort": BOTSORT}
@@ -84,26 +116,7 @@ class TrackingNode(Node):
 
         assert cfg.tracker_type in ["bytetrack", "botsort"], \
             f"Only support 'bytetrack' and 'botsort' for now, but got '{cfg.tracker_type}'"
-        '''
-        # Ultralytics YOLO 🚀, AGPL-3.0 license
-        # Default YOLO tracker settings for ByteTrack tracker https://github.com/ifzhang/ByteTrack
-
-        tracker_type: bytetrack # tracker type, ['botsort', 'bytetrack']
-        track_high_thresh: 0.5 # threshold for the first association
-        track_low_thresh: 0.1 # threshold for the second association
-        new_track_thresh: 0.6 # threshold for init new track if the detection does not match any tracks
-        track_buffer: 30 # buffer to calculate the time when to remove tracks
-        match_thresh: 0.8 # threshold for matching tracks
-        # min_box_area: 10  # threshold for min box areas(for tracker evaluation, not used for now)
-        # mot20: False  # for tracker evaluation(not used for now)
-        
-        # ex)
-        cfg.match_thresh = 0.9
-        self.get_logger().info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-        self.get_logger().info(str(cfg))
-        '''
-       
-        tracker = TRACKER_MAP[cfg.tracker_type](args=cfg, frame_rate=60)
+        tracker = TRACKER_MAP[cfg.tracker_type](args=cfg, frame_rate=1)
         return tracker
 
     def detections_cb(self, img_msg: Image, detections_msg: DetectionArray) -> None:
@@ -139,7 +152,7 @@ class TrackingNode(Node):
             )
 
             tracks = self.tracker.update(det, cv_image)
-                        
+
             if len(tracks) > 0:
 
                 for t in tracks:
@@ -160,15 +173,12 @@ class TrackingNode(Node):
                     # get track id
                     track_id = ""
                     if tracked_box.is_track:
-                        track_id = int(tracked_box.id)
+                        track_id = str(int(tracked_box.id))
                     tracked_detection.id = track_id
 
                     # append msg
                     tracked_detections_msg.detections.append(tracked_detection)
-                    # self.get_logger().info('\033[93m =================================================== \033[0m')
-                    # self.get_logger().info('\033[93m {}  \033[0m'.format(tracked_detection.id)) # For Debugging
-                    # self.get_logger().info('\033[93m =================================================== \033[0m')
-                    
+
         # publish detections
         self._pub.publish(tracked_detections_msg)
 
@@ -176,11 +186,8 @@ class TrackingNode(Node):
 def main():
     rclpy.init()
     node = TrackingNode()
-    executor = MultiThreadedExecutor()
-    executor.add_node(node)
-
-    try:
-        executor.spin()
-    finally:
-        executor.remove_node(node)
-        rclpy.shutdown()
+    node.trigger_configure()
+    node.trigger_activate()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
