@@ -106,8 +106,6 @@ class DebugNode(LifecycleNode):
         self.get_logger().info(f'Cleaning up {self.get_name()}')
 
         self.destroy_publisher(self._dbg_pub)
-        self.destroy_publisher(self._bb_markers_pub)
-        self.destroy_publisher(self._kp_markers_pub)
 
         return TransitionCallbackReturn.SUCCESS
         
@@ -166,6 +164,7 @@ class DebugNode(LifecycleNode):
         ann = Annotator(cv_image)
         sh_point = [0,0]
         kp: KeyPoint2D
+        cnt = 0
         for kp in keypoints_msg.data:
             color_k = [int(x) for x in ann.kpt_color[kp.id - 1]
                        ] if len(keypoints_msg.data) == 17 else colors(kp.id - 1)
@@ -174,9 +173,11 @@ class DebugNode(LifecycleNode):
                        5, color_k, -1, lineType=cv2.LINE_AA)
             #### Shoulder middle point!
             if str(kp.id) == '7' or str(kp.id) == '6':
+                cnt+=1
                 sh_point[0] += kp.point.x
                 sh_point[1] += kp.point.y
-        sh_point[0],sh_point[1] = sh_point[0]//2,sh_point[1]//2
+        if cnt!=0:
+            sh_point[0],sh_point[1] = sh_point[0]//cnt,sh_point[1]//cnt
         cv2.circle(cv_image, (int(sh_point[0]), int(sh_point[1])),
                        5, (255,255,255), -1, lineType=cv2.LINE_AA)
 
@@ -193,13 +194,14 @@ class DebugNode(LifecycleNode):
             cv_image, sh_point = self.draw_keypoints(cv_image, detection)
             # When the input person is detected
             if detection.facebox.name == self.person_name:
-                person_center = DetectionInfo()
-                person_center.header = face_detection_msg.header
-                person_center.x = float(sh_point[0])
-                person_center.y = float(sh_point[1])
-                person_center.name = self.person_name
-                self._center_pub.publish(person_center)
-                # self.get_logger().info('Person name : {} | depth point {}'.format(str(detection.name),[sh_point[0],sh_point[1]]))         
+                if sh_point[0]!=0:
+                    person_center = DetectionInfo()
+                    person_center.header = face_detection_msg.header
+                    person_center.x = float(sh_point[0])
+                    person_center.y = float(sh_point[1])
+                    person_center.name = self.person_name
+                    self._center_pub.publish(person_center)
+                    # self.get_logger().info('Person name : {} | depth point {}'.format(str(detection.name),[sh_point[0],sh_point[1]]))         
             cv_image = self.draw_box(cv_image, detection)
             
         # publish dbg image
