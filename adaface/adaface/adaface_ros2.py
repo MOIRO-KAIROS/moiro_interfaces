@@ -64,24 +64,24 @@ class Adaface_ros(LifecycleNode):
         self.max_obj = self.get_parameter("max_obj").get_parameter_value().integer_value
         self.dataset = self.get_parameter("dataset").get_parameter_value().string_value
         self.video = self.get_parameter("video").get_parameter_value().string_value
-
+        
         # self._penalty = {}
         #pubs
         self._adaface_pub = self.create_publisher(DetectionArray, 'adaface_msg',10)
 
         return TransitionCallbackReturn.SUCCESS
-
+    
     def on_activate(self, state: LifecycleState) -> TransitionCallbackReturn:
         self.get_logger().info(f'Activating {self.get_name()}')
-
-        image_qos_profile = QoSProfile(
+        
+        self.image_qos_profile = QoSProfile(
                 reliability=self.get_parameter(
                     "image_reliability").get_parameter_value().integer_value,
                 history=QoSHistoryPolicy.KEEP_LAST,
                 durability=QoSDurabilityPolicy.VOLATILE,
                 depth=1
             )
-
+        
         self.adaface = AdaFace(
             model=self.model,
             option=self.option,
@@ -90,15 +90,15 @@ class Adaface_ros(LifecycleNode):
             max_obj=self.max_obj,
             thresh=self.thresh,
         )
-
+        
         ## subs
         tracking_sub = message_filters.Subscriber(
             self, DetectionArray, "detections", qos_profile =10)
         image_sub = message_filters.Subscriber(
-            self, Image, "image_raw", qos_profile=image_qos_profile)
+            self, Image, "image_raw", qos_profile=self.image_qos_profile)
 
-        self._synchronizer = message_filters.ApproximateTimeSynchronizer(
-            (image_sub, tracking_sub), 10, 0.5)
+        self._synchronizer = message_filters.TimeSynchronizer(
+            (image_sub, tracking_sub), 10)
         self._synchronizer.registerCallback(self.adaface_main)
 
         return TransitionCallbackReturn.SUCCESS
@@ -118,10 +118,10 @@ class Adaface_ros(LifecycleNode):
         self.get_logger().info(f'Cleaning up {self.get_name()}')
 
         # self.destroy_publisher(self._adaface_pub)
-        # # del self.image_qos_profile
+        del self.image_qos_profile
 
         return TransitionCallbackReturn.SUCCESS
-
+  
     def adaface_main(self, img_msg: Image, detections_msg: DetectionArray) -> None:
     
         # convert image for align
@@ -141,10 +141,10 @@ class Adaface_ros(LifecycleNode):
             detection.bboxyolo.leftup = [x1, y1]
             detection.bboxyolo.rightbottom = [x2, y2]
             face_box, face_info = self.adaface.inference(cv_image[y1:y2,x1:x2])
-            # face_box, face_info = None, None
+            #   face_box, face_info = None, None
 
             if face_box: # 굳이 변환할 필요가 없지
-                # Assume that one person box = one face
+            # Assume that one person box = one face
                 detection.facebox.bbox.leftup = [x1 + face_box[0][0] , y1 + face_box[0][1]]
                 detection.facebox.bbox.rightbottom = [x1 + face_box[0][2], y1 + face_box[0][3]]
                 
@@ -155,9 +155,9 @@ class Adaface_ros(LifecycleNode):
                 detection.facebox.isdetect = False
                 detection.facebox.name = "no face"
 
-        # dictionary 관련 + name update하기
+            # dictionary 관련 + name update하기
             keys_to_keep.append(detection.id)
-            
+                
             if detection.facebox.name not in ["unknown", "no face"]:
                 if detection.id not in self._face_cache.keys() or self._face_cache[detection.id][0] in ["unknown", "no face"]:
                     self._face_cache[detection.id] = [detection.facebox.name, 0]
@@ -171,7 +171,7 @@ class Adaface_ros(LifecycleNode):
             else:
                 if detection.id not in self._face_cache.keys():
                     self._face_cache[detection.id] = [detection.facebox.name, 0]
-        # 실제 facebox.name을 반영 (dictionary 값을)
+            # 실제 facebox.name을 반영 (dictionary 값을)
             detection.facebox.name = self._face_cache[detection.id][0]
             detections_msg.detections[n] = detection
         
