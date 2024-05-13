@@ -132,48 +132,48 @@ class Adaface_ros(LifecycleNode):
     
     keys_to_keep = []
     for n, detection in enumerate(detections_msg.detections):
-      # 객체 이미지 위치 잡고 그걸 inference로 보낸다
-      x1 = int(np.clip((detection.bbox.center.position.x - detection.bbox.size.x / 2), 0, img_msg.width)) # img_msg.width = 640 # ? 설정 시: 640 - 1
-      y1 = int(np.clip((detection.bbox.center.position.y - detection.bbox.size.y / 2), 0, img_msg.height)) # img_msg.height = 480
-      x2 = int(np.clip((detection.bbox.center.position.x + detection.bbox.size.x / 2), 0, img_msg.width))
-      y2 = int(np.clip((detection.bbox.center.position.y + detection.bbox.size.y / 2), 0, img_msg.height))
+        # 객체 이미지 위치 잡고 그걸 inference로 보낸다
+        x1 = int(np.clip((detection.bbox.center.position.x - detection.bbox.size.x / 2), 0, img_msg.width)) # img_msg.width = 640 # ? 설정 시: 640 - 1
+        y1 = int(np.clip((detection.bbox.center.position.y - detection.bbox.size.y / 2), 0, img_msg.height)) # img_msg.height = 480
+        x2 = int(np.clip((detection.bbox.center.position.x + detection.bbox.size.x / 2), 0, img_msg.width))
+        y2 = int(np.clip((detection.bbox.center.position.y + detection.bbox.size.y / 2), 0, img_msg.height))
 
-      detection.bboxyolo.leftup = [x1, y1]
-      detection.bboxyolo.rightbottom = [x2, y2]
-      face_box, face_info = self.adaface.inference(cv_image[y1:y2,x1:x2])
-      # face_box, face_info = None, None
+        detection.bboxyolo.leftup = [x1, y1]
+        detection.bboxyolo.rightbottom = [x2, y2]
+        face_box, face_info = self.adaface.inference(cv_image[y1:y2,x1:x2])
+        # face_box, face_info = None, None
 
-      if face_box: # 굳이 변환할 필요가 없지
-      # Assume that one person box = one face
-        detection.facebox.bbox.leftup = [x1 + face_box[0][0] , y1 + face_box[0][1]]
-        detection.facebox.bbox.rightbottom = [x1 + face_box[0][2], y1 + face_box[0][3]]
-        
-        detection.facebox.name = face_info[0]
-        detection.facebox.score = face_info[1]
-        detection.facebox.isdetect = True            
-      else:
-          detection.facebox.isdetect = False
-          detection.facebox.name = "no face"
+        if face_box: # 굳이 변환할 필요가 없지
+            # Assume that one person box = one face
+            detection.facebox.bbox.leftup = [x1 + face_box[0][0] , y1 + face_box[0][1]]
+            detection.facebox.bbox.rightbottom = [x1 + face_box[0][2], y1 + face_box[0][3]]
+            
+            detection.facebox.name = face_info[0]
+            detection.facebox.score = face_info[1]
+            detection.facebox.isdetect = True            
+        else:
+            detection.facebox.isdetect = False
+            detection.facebox.name = "no face"
 
       # dictionary 관련 + name update하기
-      keys_to_keep.append(detection.id)
+        keys_to_keep.append(detection.id)
         
-      if detection.facebox.name not in ["unknown", "no face"]:
-          if detection.id not in self._face_cache.keys() or self._face_cache[detection.id][0] in ["unknown", "no face"]:
-              self._face_cache[detection.id] = [detection.facebox.name, 0]
-          else: # penalty 주자 (minha != yeonju)
-            if self._face_cache[detection.id][0] != detection.facebox.name:
-              self._face_cache[detection.id][1] += 1
-            else: # 연속이 아니면 0으로 초기화
-                self._face_cache[detection.id][1] = 0
-            if self._face_cache[detection.id][1] == 3:
-              self._face_cache[detection.id] = [detection.facebox.name, 0]
-      else:
-          if detection.id not in self._face_cache.keys():
-              self._face_cache[detection.id] = [detection.facebox.name, 0]
+        if detection.facebox.name not in ["unknown", "no face"]:
+            if detection.id not in self._face_cache.keys() or self._face_cache[detection.id][0] in ["unknown", "no face"]:
+                self._face_cache[detection.id] = [detection.facebox.name, 0]
+            else: # penalty 주자 (minha != yeonju)
+                if self._face_cache[detection.id][0] != detection.facebox.name:
+                    self._face_cache[detection.id][1] += 1
+                else: # 연속이 아니면 0으로 초기화
+                    self._face_cache[detection.id][1] = 0
+                if self._face_cache[detection.id][1] == 3:
+                    self._face_cache[detection.id] = [detection.facebox.name, 0]
+        else:
+            if detection.id not in self._face_cache.keys():
+                self._face_cache[detection.id] = [detection.facebox.name, 0]
       # 실제 facebox.name을 반영 (dictionary 값을)
-      detection.facebox.name = self._face_cache[detection.id][0]
-      detections_msg.detections[n] = detection
+        detection.facebox.name = self._face_cache[detection.id][0]
+        detections_msg.detections[n] = detection
     
     # self.get_logger().info(f' dict : {self._face_cache}')
     self._adaface_pub.publish(detections_msg)
@@ -186,13 +186,13 @@ class Adaface_ros(LifecycleNode):
 
 
 def main(args=None): 
-  rclpy.init()
-  node = Adaface_ros()
-  node.trigger_configure()
-  node.trigger_activate()
-  rclpy.spin(node)
-  node.destroy_node()
-  rclpy.shutdown()
+    rclpy.init()
+    node = Adaface_ros()
+    node.trigger_configure()
+    node.trigger_activate()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
 
 # if __name__ == '__main__':
 #   main()
