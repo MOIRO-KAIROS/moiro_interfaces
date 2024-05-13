@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.duration import Duration
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
@@ -90,8 +91,8 @@ class Adaface(Node):
 
     
     # 이미지와 message를 동기화
-    self._synchronizer = message_filters.ApproximateTimeSynchronizer(
-        (image_sub, tracking_sub), 10, 0.1)
+    self._synchronizer = message_filters.TimeSynchronizer(
+        (image_sub, tracking_sub), 10)
     
     # Adaface_main 부름
     self._synchronizer.registerCallback(self.adaface_main)
@@ -158,11 +159,16 @@ class Adaface(Node):
 
 
 def main(args=None): 
-  rclpy.init(args=None)
+  rclpy.init()
   node = Adaface()
-  rclpy.spin(node)
-  node.destroy_node()
-  rclpy.shutdown()
+  executor = MultiThreadedExecutor()
+  executor.add_node(node)
+
+  try:
+      executor.spin()
+  finally:
+      executor.remove_node(node)
+      rclpy.shutdown()
 
 if __name__ == '__main__':
   main()

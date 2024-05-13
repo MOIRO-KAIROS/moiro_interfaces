@@ -18,6 +18,7 @@ import numpy as np
 
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSHistoryPolicy
 from rclpy.qos import QoSDurabilityPolicy
@@ -175,6 +176,11 @@ class TrackingNode(Node):
 def main():
     rclpy.init()
     node = TrackingNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+
+    try:
+        executor.spin()
+    finally:
+        executor.remove_node(node)
+        rclpy.shutdown()
