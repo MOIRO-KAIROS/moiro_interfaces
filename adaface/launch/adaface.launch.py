@@ -80,7 +80,7 @@ def generate_launch_description():
         ]))
     )
 
-    # # Include launch descriptions
+    # Include launch descriptions
     # realsense_launch_cmd = IncludeLaunchDescription(
     #     PythonLaunchDescriptionSource([FindPackageShare("realsense2_camera"), '/launch/rs_launch.py']),
     #     launch_arguments=[

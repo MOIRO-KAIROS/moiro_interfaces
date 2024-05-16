@@ -20,6 +20,7 @@ class WorldNode(Node):
 
         ###
         self.static_broadcaster = tf2_ros.StaticTransformBroadcaster(self)
+        self.person_broadcaster = tf2_ros.TransformBroadcaster(self)
 
         # Define the static transform from base_link to camera_link
         self.static_transform_stamped = TransformStamped()
@@ -88,17 +89,29 @@ class WorldNode(Node):
                 # Transform camera coordinates to world coordinates
                 object_position_camera_frame = camera_coords
                 object_position_world_frame = np.dot(R, object_position_camera_frame) + camera_position
+                
+
+                transform_stamped = TransformStamped()
+                transform_stamped.header.stamp = self.get_clock().now().to_msg()
+                transform_stamped.header.frame_id = 'camera_link'
+                transform_stamped.child_frame_id = 'person_link'
+                transform_stamped.transform.translation.x = object_position_world_frame[2] / 1000.0
+                transform_stamped.transform.translation.y =  object_position_world_frame[0] / 1000.0
+                transform_stamped.transform.translation.z = object_position_world_frame[1] / 1000.0
+                transform_stamped.transform.rotation.w = 1.0
+                self.person_broadcaster.sendTransform(transform_stamped)
+                self.get_logger().info(f'depth : {depth} x:{transform_stamped.transform.translation.x} | y:{transform_stamped.transform.translation.y} | z:{transform_stamped.transform.translation.z} ')
 
                 # Publish the object position in world coordinates
-                pose_msg = PoseStamped()
-                pose_msg.header.stamp = self.get_clock().now().to_msg()
-                pose_msg.header.frame_id = 'camera_link'
-                pose_msg.pose.position.y = object_position_world_frame[0] / 1000.0
-                pose_msg.pose.position.z = object_position_world_frame[1] / 1000.0
-                pose_msg.pose.position.x = object_position_world_frame[2] / 1000.0
-                pose_msg.pose.orientation.w = 1.0
-                self.get_logger().info(f'depth : {depth} x:{pose_msg.pose.position.x} | y:{pose_msg.pose.position.y} | z:{pose_msg.pose.position.z} ')
-                self.pose_publisher.publish(pose_msg)
+                # pose_msg = PoseStamped()
+                # pose_msg.header.stamp = self.get_clock().now().to_msg()
+                # pose_msg.header.frame_id = 'camera_link'
+                # pose_msg.pose.position.y = object_position_world_frame[0] / 1000.0
+                # pose_msg.pose.position.z = object_position_world_frame[1] / 1000.0
+                # pose_msg.pose.position.x = object_position_world_frame[2] / 1000.0
+                # pose_msg.pose.orientation.w = 1.0
+                # self.get_logger().info(f'depth : {depth} x:{pose_msg.pose.position.x} | y:{pose_msg.pose.position.y} | z:{pose_msg.pose.position.z} ')
+                # self.pose_publisher.publish(pose_msg)
 
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
                 self.get_logger().error(f"Failed to lookup transform: {e}")
