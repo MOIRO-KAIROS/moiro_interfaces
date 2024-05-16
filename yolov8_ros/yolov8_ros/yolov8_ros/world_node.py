@@ -1,152 +1,126 @@
 import rclpy
 from rclpy.node import Node
 import message_filters
-
+from cv_bridge import CvBridge
+from sensor_msgs.msg import Image
 from yolov8_msgs.msg import DetectionInfo
-from sensor_msgs.msg import CameraInfo, Image
-from geometry_msgs.msg import Pose,PoseStamped
-
-from rclpy.qos import QoSProfile
-from rclpy.qos import QoSHistoryPolicy
-from rclpy.qos import QoSDurabilityPolicy
-from rclpy.qos import QoSReliabilityPolicy
-
-import time
-import tf2_ros
+from geometry_msgs.msg import PoseStamped, TransformStamped, Pose
 import transforms3d.quaternions as txq
 import numpy as np
-from cv_bridge import CvBridge
-
+import tf2_ros
 
 class WorldNode(Node):
 
-    def __init__(self) -> None:
-        super().__init__("world_node")
-        self.camera_link = "camera_link"
-        # self.serial_port = serial.Serial('/dev/ttyACM0', 115200)  # Modify port and baudrate as needed
+    def __init__(self):
+        super().__init__('world_node')
 
+        self.camera_link = 'camera_link'
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
-        self.cv_bridge = CvBridge()
 
-        # params
-        self.declare_parameter("depth_image_reliability",
-                               QoSReliabilityPolicy.BEST_EFFORT)
-        depth_image_qos_profile = QoSProfile(
-            reliability=self.get_parameter(
-                "depth_image_reliability").get_parameter_value().integer_value,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            durability=QoSDurabilityPolicy.VOLATILE,
-            depth=1
-        )
-         # pub
+        ###
+        self.static_broadcaster = tf2_ros.StaticTransformBroadcaster(self)
+
+        # Define the static transform from base_link to camera_link
+        self.static_transform_stamped = TransformStamped()
+        self.static_transform_stamped.header.stamp = self.get_clock().now().to_msg()
+        self.static_transform_stamped.header.frame_id = 'base_link'
+        self.static_transform_stamped.child_frame_id = 'camera_link'
+
+        # Define translation (x, y, z)
+        self.static_transform_stamped.transform.translation.x = 0.1  # Example translation in x-axis
+        self.static_transform_stamped.transform.translation.y = 0.0  # Example translation in y-axis
+        self.static_transform_stamped.transform.translation.z = 0.0  # Example translation in z-axis
+
+        # Define rotation (quaternion: x, y, z, w)
+        self.static_transform_stamped.transform.rotation.x = 0.0
+        self.static_transform_stamped.transform.rotation.y = 0.0
+        self.static_transform_stamped.transform.rotation.z = 0.0
+        self.static_transform_stamped.transform.rotation.w = 1.0  # No rotation in this example
+
+        # Publish the static transform
+        self.static_broadcaster.sendTransform(self.static_transform_stamped)
+        ###
+
+        # Parameters
+        self.declare_parameter('depth_image_reliability', 1)  # Default to BEST_EFFORT
+        reliability = self.get_parameter('depth_image_reliability').get_parameter_value().integer_value
+        self.depth_image_qos_profile = rclpy.qos.QoSProfile(depth=1, reliability=reliability)
+
+        # Publishers
         self.pose_publisher = self.create_publisher(PoseStamped, 'person_position', 10)
-        self.x = 0
-        self.y = 0
-        # self.name = ''
-        self.depth = 0
-        self.non_detected = True
 
-        # subs
-        self.depth_sub = message_filters.Subscriber(
-            self, Image, "depth_image",
-            qos_profile=depth_image_qos_profile)
-        self.center_sub = message_filters.Subscriber(
-            self, DetectionInfo, "center_point")
-        
-        self._synchronizer = message_filters.ApproximateTimeSynchronizer(
-            (self.depth_sub, self.center_sub), 10, 0.5)
-        self._synchronizer.registerCallback(self.world_publisher)
+        # Subscribers
+        self.depth_sub = message_filters.Subscriber(self, Image, 'depth_image', qos_profile=self.depth_image_qos_profile)
+        self.center_sub = message_filters.Subscriber(self, DetectionInfo, 'center_point')
 
-    def world_publisher(self, depth_msg: Image, point_msg: DetectionInfo):
-        depth_frame = self.cv_bridge.imgmsg_to_cv2(depth_msg)
-        self.x = int(point_msg.x)
-        self.y = int(point_msg.y)
-        self.name = point_msg.name
-        self.depth = depth_frame[self.y][self.x]
-        if self.x != 0:
-            self.non_detected = False
+        # ApproximateTimeSynchronizer
+        self._synchronizer = message_filters.TimeSynchronizer(
+            [self.depth_sub, self.center_sub], 100)
+        self._synchronizer.registerCallback(self.process_detection)
 
-    def pixel_to_camera_coordinates(self, x_pixel, y_pixel, depth, focal_length, image_center):
-        x_camera = (x_pixel - image_center[0]) * depth / focal_length
-        y_camera = (y_pixel - image_center[1]) * depth / focal_length
+    def process_detection(self, depth_msg: Image, point_msg: DetectionInfo):
+        bridge = CvBridge()
+        depth_frame = bridge.imgmsg_to_cv2(depth_msg)
+
+        u = int(point_msg.x)
+        v = int(point_msg.y)
+        depth = depth_frame[v][u]  # Access depth at (v, u) due to OpenCV array indexing
+
+        if depth != 0:
+            # Convert pixel coordinates to camera coordinates
+            image_center = [depth_msg.width / 2.0, depth_msg.height / 2.0]
+            focal_length = 381.98  # Focal length in pixels (example value)
+            camera_coords = self.pixel_to_camera_coordinates(u, v, depth, focal_length, image_center)
+
+            # Get transform from camera_link to base_link
+            try:
+                # transform = self.tf_buffer.lookup_transform('camera_link', self.camera_link, rclpy.time.Time())
+                transform = self.tf_buffer.lookup_transform('base_link', self.camera_link, rclpy.time.Time())
+                camera_position = np.array([transform.transform.translation.x,
+                                            transform.transform.translation.y,
+                                            transform.transform.translation.z])
+                camera_orientation = transform.transform.rotation
+
+                # Convert quaternion to rotation matrix
+                R = self.quaternion_to_rotation_matrix(camera_orientation)
+
+                # Transform camera coordinates to world coordinates
+                object_position_camera_frame = camera_coords
+                object_position_world_frame = np.dot(R, object_position_camera_frame) + camera_position
+
+                # Publish the object position in world coordinates
+                pose_msg = PoseStamped()
+                pose_msg.header.stamp = self.get_clock().now().to_msg()
+                pose_msg.header.frame_id = 'person_frame'
+                pose_msg.pose.position.y = - object_position_world_frame[0] / 1000.0
+                pose_msg.pose.position.z = - object_position_world_frame[1] / 1000.0
+                pose_msg.pose.position.x = object_position_world_frame[2] / 1000.0
+                self.get_logger().info(f'x:{pose_msg.pose.position.x} | y:{pose_msg.pose.position.y} | z:{pose_msg.pose.position.z} depth : {depth}')
+                self.pose_publisher.publish(pose_msg)
+
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+                self.get_logger().error(f"Failed to lookup transform: {e}")
+
+    def pixel_to_camera_coordinates(self, u, v, depth, focal_length, image_center):
         z_camera = depth
-
+        x_camera = (u - image_center[0]) * depth / focal_length
+        y_camera = (v - image_center[1]) * depth / focal_length
         return np.array([x_camera, y_camera, z_camera])
 
-    def run(self):
-        while rclpy.ok():
-            rclpy.spin_once(self)
-            if not self.non_detected:
-                # Convert pixel coordinates to camera coordinates
-                image_center = [320.1998291 , 238.22215271]  # Assuming image center at (640, 360)
-                focal_length = 381.98086548  # Focal length in pixels (example value)
-                camera_coords = self.pixel_to_camera_coordinates(self.x, self.y, self.depth,
-                                                                 focal_length, image_center)
-
-                # Get the transform from camera_link to world
-                try:
-                    transform = self.tf_buffer.lookup_transform('camera_link', self.camera_link, rclpy.time.Time())
-                    # transform = self.tf_buffer.lookup_transform('base_link', self.camera_link, rclpy.time.Time())
-                    camera_position = np.array([transform.transform.translation.x,
-                                                transform.transform.translation.y,
-                                                transform.transform.translation.z])
-                    camera_orientation = transform.transform.rotation
-
-                    # Camera 보정 ( D435 카메라 중심과 Color 카메라의 위치가 일치하지 않음 )
-                    if (camera_position[0] >= 0.1): camera_position[0] *= 0.6
-                    elif (camera_position[0] >= 0.070): camera_position[0] -= 0.070
-                    elif (camera_position[0] >= 0.035): camera_position[0] -= 0.035
-                    elif (camera_position[0] > 0): camera_position[0] = 0.000
-                    elif (camera_position[0] <= -0.1): camera_position[0] *= 0.8
-
-                    if (abs(camera_position[1]) >= 0.1): camera_position[1] *= 0.8
-
-                    # Convert quaternion to rotation matrix
-                    R = self.quaternion_to_rotation_matrix(camera_orientation)
-
-                    # Transform object position from camera to world coordinates
-                    object_position_camera_frame = camera_coords
-                    object_position_world_frame = np.dot(R, object_position_camera_frame) + camera_position
-
-                    # Publish the object position in world coordinates
-                    pose_msg = Pose()
-                    pose_msg.position.x = object_position_world_frame[0]
-                    pose_msg.position.y = object_position_world_frame[1]
-                    pose_msg.position.z = object_position_world_frame[2]
-                    self.get_logger().info(f' ({self.name})  x:{pose_msg.position.x} | y:{pose_msg.position.y} | z:{pose_msg.position.z} ')
-
-                    self.publish_pose(pose_msg)  # Publish the transformed pose
-
-                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-                    print(f"Failed to lookup transform: {e}")
-
-                self.non_detected = True  # Reset the detection flag after processing
-
-            time.sleep(0.2)
-
     def quaternion_to_rotation_matrix(self, quaternion):
-        # Convert quaternion to rotation matrix
         q = [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
-        R = txq.quat2mat(q)
-        return R
-
-    def publish_pose(self, pose_msg):
-        # Publish the pose in world coordinates
-        pose_stamped_msg = PoseStamped()
-        pose_stamped_msg.pose = pose_msg
-        pose_stamped_msg.header.frame_id = 'person_frame'
-        self.pose_publisher.publish(pose_stamped_msg)
+        return txq.quat2mat(q)
 
 def main(args=None):
     rclpy.init(args=args)
-    world_position = WorldNode()
+    world_node = WorldNode()
     try:
-        world_position.run()
+        rclpy.spin(world_node)
     except KeyboardInterrupt:
         pass
 
-    world_position.destroy_node()
+    world_node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':

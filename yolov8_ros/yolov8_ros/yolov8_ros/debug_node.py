@@ -158,7 +158,6 @@ class DebugNode(LifecycleNode):
         return cv_image
 
     def draw_keypoints(self, cv_image: np.array, detection: Detection) -> np.array:
-
         keypoints_msg = detection.keypoints
 
         ann = Annotator(cv_image)
@@ -186,10 +185,18 @@ class DebugNode(LifecycleNode):
 
     def detections_cb(self, img_msg: Image, face_detection_msg: DetectionArray) -> None:
         # start = time.time()
+        # self.get_logger().info(f"{img_msg.height} {img_msg.width}")
 
         cv_image = self.cv_bridge.imgmsg_to_cv2(img_msg,"rgb8")
         detection: Detection
-        
+        # cv2.circle(cv_image, (50, 50),
+        #                10, (255,0,0), -1, lineType=cv2.LINE_AA)
+        # person_center = DetectionInfo()
+        # person_center.header = face_detection_msg.header
+        # person_center.x = float(50)
+        # person_center.y = float(50)
+        # person_center.name = 'hello'
+        # self._center_pub.publish(person_center)      
         for detection in face_detection_msg.detections:
             cv_image, sh_point = self.draw_keypoints(cv_image, detection)
             # When the input person is detected
@@ -201,7 +208,7 @@ class DebugNode(LifecycleNode):
                     person_center.y = float(sh_point[1])
                     person_center.name = self.person_name
                     self._center_pub.publish(person_center)
-                    # self.get_logger().info('Person name : {} | depth point {}'.format(str(detection.name),[sh_point[0],sh_point[1]]))         
+                    # self.get_logger().info('depth point {}'.format([sh_point[0],sh_point[1]]))         
             cv_image = self.draw_box(cv_image, detection)
             
         # publish dbg image
