@@ -29,6 +29,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/BBoxYolo.msg"
   "msg/FaceBox2D.msg"
   "srv/Person.srv"
+  "srv/TargetPose.srv"
   DEPENDENCIES std_msgs geometry_msgs
 )
 ament_export_dependencies(rosidl_default_runtime)

@@ -1,3 +1,5 @@
 .vscode
 __pycache__
 yolov8m-seg.pt
+yolov8_msgs/srv/TargetPose.srv
+yolov8_msgs/package.xml
