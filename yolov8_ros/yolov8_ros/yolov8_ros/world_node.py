@@ -55,8 +55,8 @@ class WorldNode(Node):
         self.center_sub = message_filters.Subscriber(self, DetectionInfo, 'center_point')
 
         # ApproximateTimeSynchronizer
-        self._synchronizer = message_filters.TimeSynchronizer(
-            [self.depth_sub, self.center_sub], 100)
+        self._synchronizer = message_filters.ApproximateTimeSynchronizer(
+            [self.depth_sub, self.center_sub], queue_size=20, slop=0.5)
         self._synchronizer.registerCallback(self.process_detection)
 
     def process_detection(self, depth_msg: Image, point_msg: DetectionInfo):
@@ -92,11 +92,12 @@ class WorldNode(Node):
                 # Publish the object position in world coordinates
                 pose_msg = PoseStamped()
                 pose_msg.header.stamp = self.get_clock().now().to_msg()
-                pose_msg.header.frame_id = 'person_frame'
-                pose_msg.pose.position.y = - object_position_world_frame[0] / 1000.0
-                pose_msg.pose.position.z = - object_position_world_frame[1] / 1000.0
+                pose_msg.header.frame_id = 'camera_link'
+                pose_msg.pose.position.y = object_position_world_frame[0] / 1000.0
+                pose_msg.pose.position.z = object_position_world_frame[1] / 1000.0
                 pose_msg.pose.position.x = object_position_world_frame[2] / 1000.0
-                self.get_logger().info(f'x:{pose_msg.pose.position.x} | y:{pose_msg.pose.position.y} | z:{pose_msg.pose.position.z} depth : {depth}')
+                pose_msg.pose.orientation.w = 1.0
+                self.get_logger().info(f'depth : {depth} x:{pose_msg.pose.position.x} | y:{pose_msg.pose.position.y} | z:{pose_msg.pose.position.z} ')
                 self.pose_publisher.publish(pose_msg)
 
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
