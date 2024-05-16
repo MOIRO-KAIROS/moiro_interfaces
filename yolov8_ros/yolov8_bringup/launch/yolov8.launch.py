@@ -116,7 +116,6 @@ def generate_launch_description():
         name="debug_node",
         namespace=namespace,
         parameters=[{"image_reliability": image_reliability,
-                     "person_name": person_name
         }],
         remappings=[
             ("image_raw", input_image_topic),
@@ -130,10 +129,11 @@ def generate_launch_description():
         name="world_node",
         namespace=namespace,
         parameters=[{"depth_image_reliability": image_reliability,
+                     "person_name": person_name,
         }],
         remappings=[
             ("depth_image", "/camera/camera/depth/image_rect_raw"),
-            ("center_point", "/yolo/center_point")
+            ("detections", "/adaface/adaface_msg")
         ]
     )
 

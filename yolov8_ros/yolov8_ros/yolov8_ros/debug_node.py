@@ -37,8 +37,7 @@ from ultralytics.utils.plotting import Annotator, colors
 
 from sensor_msgs.msg import Image
 from yolov8_msgs.msg import KeyPoint2D
-from yolov8_msgs.msg import Detection, DetectionArray, DetectionInfo
-from yolov8_msgs.srv import Person
+from yolov8_msgs.msg import Detection, DetectionArray
 
 class DebugNode(LifecycleNode):
 
@@ -49,17 +48,9 @@ class DebugNode(LifecycleNode):
         # params
         self.declare_parameter("image_reliability",
                                QoSReliabilityPolicy.BEST_EFFORT)
-        self.declare_parameter("person_name", 'Unintialized')
-
-        self.person_name = self.get_parameter("person_name").get_parameter_value().string_value
+        
         self.get_logger().info("Debug node created")
-        self.get_logger().info('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-') 
-        self.get_logger().info(f'The Person Who You Want To Detect Is {self.person_name} !!!!')
-        self.get_logger().info('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
 
-        # services
-        self._srv = self.create_service(Person, 'person_name', self.person_setting)
- 
     def on_configure(self, state: LifecycleState) -> TransitionCallbackReturn:
         self.get_logger().info(f'Configuring {self.get_name()}')
 
@@ -72,8 +63,6 @@ class DebugNode(LifecycleNode):
         )
         # pubs
         self._dbg_pub = self.create_publisher(Image, "dbg_image", 10)
-        self._center_pub = self.create_publisher(DetectionInfo, "center_point", 10)
-        
     
         return TransitionCallbackReturn.SUCCESS
         
@@ -108,11 +97,6 @@ class DebugNode(LifecycleNode):
         self.destroy_publisher(self._dbg_pub)
 
         return TransitionCallbackReturn.SUCCESS
-        
-    def person_setting(self, req: Person.Request, res: Person.Response ) -> Person.Response:
-        self.person_name = req.person_name
-        res.success_name = self.person_name
-        return res
 
     def draw_box(self, cv_image: np.array, detection: Detection) -> np.array:
         # draw person box
@@ -199,16 +183,6 @@ class DebugNode(LifecycleNode):
         # self._center_pub.publish(person_center)      
         for detection in face_detection_msg.detections:
             cv_image, sh_point = self.draw_keypoints(cv_image, detection)
-            # When the input person is detected
-            if detection.facebox.name == self.person_name:
-                if sh_point[0]!=0:
-                    person_center = DetectionInfo()
-                    person_center.header = face_detection_msg.header
-                    person_center.x = float(sh_point[0])
-                    person_center.y = float(sh_point[1])
-                    person_center.name = self.person_name
-                    self._center_pub.publish(person_center)
-                    # self.get_logger().info('depth point {}'.format([sh_point[0],sh_point[1]]))         
             cv_image = self.draw_box(cv_image, detection)
             
         # publish dbg image
