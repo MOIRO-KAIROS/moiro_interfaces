@@ -9,8 +9,9 @@ from geometry_msgs.msg import PoseStamped, TransformStamped, Pose
 import transforms3d.quaternions as txq
 import numpy as np
 
-from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 import tf2_ros
+from rclpy.executors import MultiThreadedExecutor
 
 class WorldNode(Node):
 
@@ -54,6 +55,11 @@ class WorldNode(Node):
                 'depth_image_reliability').get_parameter_value().integer_value, 
             depth=1
         )
+        srv_qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=10  # 적절한 히스토리 깊이 설정
+        )
 
         self.declare_parameter("person_name", 'Unintialized')
         self.person_name = self.get_parameter("person_name").get_parameter_value().string_value
@@ -75,24 +81,32 @@ class WorldNode(Node):
         # services
         self._srv = self.create_service(Person, 'person_name', self.person_setting)
         # # Client
-        self.target_client = self.create_client(TargetPose,'target_pose')
+        self.target_client = self.create_client(TargetPose,'target_pose',qos_profile=srv_qos_profile)
         while not self.target_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('service not available, waiting again...')
         self.req = TargetPose.Request()
+        self.res_done = True
 
     def target_request(self, x,y,z):
         self.req.x = x
         self.req.y = y
         self.req.z = z
         self.req.w = 1.0
-
+        self.get_logger().info(f'Sending: x : {x}  y:  {y}   z: {z} w: 1.0')
         self.res = self.target_client.call_async(self.req)
-        rclpy.spin_until_future_complete(self, self.res)
-        self.get_logger().info('Send goal pose!')
-
-        return self.res.result()
+        # Process events until the response is received
+        if self.res_done == False:
+            self.res_done = True
+            self.get_logger().info('Result: %s' % self.res.result())
+        else:
+            self.res_done = False
+            self.get_logger().error('Service call failed %r' % (self.res.exception(),))
+        # rclpy.spin_until_future_complete(self, self.res)
+        # if self.res.result() is not None:
+        #     self.get_logger().info('Result: %s' % self.res.result())
+        # else:
+        #     self.get_logger().error('Service call failed %r' % (self.res.exception(),))
     
-    # service
     def person_setting(self, req: Person.Request, res: Person.Response ) -> Person.Response:
         self.person_name = req.person_name
         res.success_name = self.person_name
@@ -159,15 +173,17 @@ class WorldNode(Node):
                 transform_stamped.header.stamp = self.get_clock().now().to_msg()
                 transform_stamped.header.frame_id = 'camera_link'
                 transform_stamped.child_frame_id = 'person_link'
-                transform_stamped.transform.translation.x = object_position_world_frame[2] / 1000.0
-                transform_stamped.transform.translation.y =  object_position_world_frame[0] / 1000.0
-                transform_stamped.transform.translation.z = object_position_world_frame[1] / 1000.0
+                
+                transform_stamped.transform.translation.x = float("{:.3f}".format(object_position_world_frame[2] / 1000.0))
+                transform_stamped.transform.translation.y =  float("{:.3f}".format(object_position_world_frame[0] / 1000.0))
+                transform_stamped.transform.translation.z = float("{:.3f}".format(object_position_world_frame[1] / 1000.0))
                 transform_stamped.transform.rotation.w = 1.0
                 self.person_broadcaster.sendTransform(transform_stamped)
                 self.get_logger().info(f'depth : {depth} x:{transform_stamped.transform.translation.x} | y:{transform_stamped.transform.translation.y} | z:{transform_stamped.transform.translation.z} ')
 
                 # # Publish the object position in world coordinates
-                response = self.target_request(transform_stamped.transform.translation.x,transform_stamped.transform.translation.y,transform_stamped.transform.translation.z)
+                if self.res_done == True:
+                    self.target_request(transform_stamped.transform.translation.x,transform_stamped.transform.translation.y,transform_stamped.transform.translation.z)
 
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
                 self.get_logger().error(f"Failed to lookup transform: {e}")
@@ -184,14 +200,15 @@ class WorldNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    world_node = WorldNode()
     try:
-        rclpy.spin(world_node)
+        node = WorldNode()
+        executor = MultiThreadedExecutor()
+        executor.add_node(node)
+        executor.spin()
     except KeyboardInterrupt:
-        pass
-
-    world_node.destroy_node()
-    rclpy.shutdown()
+        node.get_logger().info('Keyboard interrupt, shutting down.\n')
+    finally:
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
