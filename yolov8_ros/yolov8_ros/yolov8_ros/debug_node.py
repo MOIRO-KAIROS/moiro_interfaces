@@ -149,11 +149,11 @@ class DebugNode(LifecycleNode):
         kp: KeyPoint2D
         cnt = 0
         for kp in keypoints_msg.data:
-            color_k = [int(x) for x in ann.kpt_color[kp.id - 1]
-                       ] if len(keypoints_msg.data) == 17 else colors(kp.id - 1)
+            # color_k = [int(x) for x in ann.kpt_color[kp.id - 1]
+            #            ] if len(keypoints_msg.data) == 17 else colors(kp.id - 1)
 
-            cv2.circle(cv_image, (int(kp.point.x), int(kp.point.y)),
-                       5, color_k, -1, lineType=cv2.LINE_AA)
+            # cv2.circle(cv_image, (int(kp.point.x), int(kp.point.y)),
+            #            5, color_k, -1, lineType=cv2.LINE_AA)
             #### Shoulder middle point!
             if str(kp.id) == '7' or str(kp.id) == '6':
                 cnt+=1

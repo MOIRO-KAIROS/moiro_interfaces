@@ -74,22 +74,23 @@ class WorldNode(Node):
 
         # services
         self._srv = self.create_service(Person, 'person_name', self.person_setting)
-        # # # Client
-        # self.target_client = self.create_client(TargetPose,'target_position')
-        # while not self.target_client.wait_for_service(timeout_sec=1.0):
-        #     self.get_logger().info('service not available, waiting again...')
-        # self.req = TargetPose.Request()
+        # # Client
+        self.target_client = self.create_client(TargetPose,'target_pose')
+        while not self.target_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('service not available, waiting again...')
+        self.req = TargetPose.Request()
 
-    # def target_request(self, x,y,z):
-    #     self.req.x = x
-    #     self.req.y = y
-    #     self.req.z = z
-    #     self.req.w = 1.0
+    def target_request(self, x,y,z):
+        self.req.x = x
+        self.req.y = y
+        self.req.z = z
+        self.req.w = 1.0
 
-    #     self.res = self.target_client.call_async(self.req)
-    #     rclpy.spin_until_future_complete(self, self.res)
+        self.res = self.target_client.call_async(self.req)
+        rclpy.spin_until_future_complete(self, self.res)
+        self.get_logger().info('Send goal pose!')
 
-    #     return self.res.result()
+        return self.res.result()
     
     # service
     def person_setting(self, req: Person.Request, res: Person.Response ) -> Person.Response:
@@ -166,7 +167,7 @@ class WorldNode(Node):
                 self.get_logger().info(f'depth : {depth} x:{transform_stamped.transform.translation.x} | y:{transform_stamped.transform.translation.y} | z:{transform_stamped.transform.translation.z} ')
 
                 # # Publish the object position in world coordinates
-                # response = self.target_request(transform_stamped.transform.translation.x,transform_stamped.transform.translation.y,transform_stamped.transform.translation.z)
+                response = self.target_request(transform_stamped.transform.translation.x,transform_stamped.transform.translation.y,transform_stamped.transform.translation.z)
 
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
                 self.get_logger().error(f"Failed to lookup transform: {e}")
