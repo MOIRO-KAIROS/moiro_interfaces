@@ -137,10 +137,10 @@ conda list | grep torch
 ```
 ros2 launch adaface adaface.launch.py
 ```
-![adafaceRqtGraph](https://github.com/MOIRO-KAIROS/faceRec_ros2/assets/114575723/41b6a8bf-2987-4214-8988-bbf7bc2db801)
 
-- realsense_ros -> yolov8_ros -> adaface 순으로 구동됨
-![Screenshot from 2024-04-24 11-35-27](https://github.com/MOIRO-KAIROS/faceRec_ros2/assets/114575723/c1d8be5c-20f7-4b3c-be35-6c2f13c1324f)
+![image](https://github.com/MOIRO-KAIROS/faceRec_ros2/assets/114575723/d955b345-c5c8-4efe-b6c2-4ccd349e8470)
+![rosgraph](https://github.com/MOIRO-KAIROS/faceRec_ros2/assets/114575723/f34f394e-b0a0-4348-86ac-77c6ff51baf1)
+
 
 ## 하단부 수정 필요
 ### 4) Run Inference
