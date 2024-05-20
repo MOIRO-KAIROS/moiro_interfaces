@@ -97,7 +97,6 @@ def generate_launch_description():
     yolov8_launch_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([FindPackageShare("yolov8_bringup"), '/launch/yolov8.launch.py']),
         launch_arguments=[
-            ('use_sim_time','true'),
             ('model', 'yolov8m-pose.pt'),
             ('input_image_topic', LaunchConfiguration("input_image_topic")),
             ('target_frame', 'camera_link'),

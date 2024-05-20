@@ -23,10 +23,51 @@ class WorldNode(Node):
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
         self.cv_bridge = CvBridge()
         
-        ###
-        self.static_broadcaster = tf2_ros.StaticTransformBroadcaster(self)
         self.person_broadcaster = tf2_ros.TransformBroadcaster(self)
+        self.static_tf()
+        
+        # Parameters
+        self.declare_parameter('depth_image_reliability', 1)  # QoSReliabilityPolicy.BEST_EFFORT, Default to BEST_EFFORT
+        depth_image_qos_profile = QoSProfile(
+            reliability=self.get_parameter(
+                'depth_image_reliability').get_parameter_value().integer_value, 
+            depth=1
+        )
+        srv_qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=10 
+        )
 
+        self.declare_parameter("person_name", 'Unintialized')
+        self.person_name = self.get_parameter("person_name").get_parameter_value().string_value
+
+        self.get_logger().info('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-') 
+        self.get_logger().info(f'The Person Who You Want To Detect Is {self.person_name} !!!!')
+        self.get_logger().info('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
+
+        # Subscribers
+        self.depth_sub = message_filters.Subscriber(self, Image, 'depth_image', qos_profile=depth_image_qos_profile)
+        self.detections_sub = message_filters.Subscriber(
+            self, DetectionArray, "detections")
+        
+        # ApproximateTimeSynchronizer
+        self._synchronizer = message_filters.ApproximateTimeSynchronizer(
+            [self.depth_sub, self.detections_sub], queue_size=100, slop=0.1)
+        self._synchronizer.registerCallback(self.person_tf)
+
+        # services
+        self._srv = self.create_service(Person, 'person_name', self.person_setting)
+
+        # Client
+        self.target_client = self.create_client(TargetPose,'target_pose',qos_profile=srv_qos_profile)
+        while not self.target_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('service not available, waiting again...')
+        self.req = TargetPose.Request()
+        self.request_pending = False
+
+    def static_tf(self):
+        self.static_broadcaster = tf2_ros.StaticTransformBroadcaster(self)
         # Define the static transform from base_link to camera_link
         self.static_transform_stamped = TransformStamped()
         self.static_transform_stamped.header.stamp = self.get_clock().now().to_msg()
@@ -46,67 +87,27 @@ class WorldNode(Node):
 
         # Publish the static transform
         self.static_broadcaster.sendTransform(self.static_transform_stamped)
-        ###
-
-        # Parameters
-        self.declare_parameter('depth_image_reliability', 1)  # QoSReliabilityPolicy.BEST_EFFORT, Default to BEST_EFFORT
-        depth_image_qos_profile = QoSProfile(
-            reliability=self.get_parameter(
-                'depth_image_reliability').get_parameter_value().integer_value, 
-            depth=1
-        )
-        srv_qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.RELIABLE,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=10  # 적절한 히스토리 깊이 설정
-        )
-
-        self.declare_parameter("person_name", 'Unintialized')
-        self.person_name = self.get_parameter("person_name").get_parameter_value().string_value
-
-        self.get_logger().info('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-') 
-        self.get_logger().info(f'The Person Who You Want To Detect Is {self.person_name} !!!!')
-        self.get_logger().info('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-')
-
-        # Subscribers
-        self.depth_sub = message_filters.Subscriber(self, Image, 'depth_image', qos_profile=depth_image_qos_profile)
-        self.detections_sub = message_filters.Subscriber(
-            self, DetectionArray, "detections")
-        
-        # ApproximateTimeSynchronizer
-        self._synchronizer = message_filters.ApproximateTimeSynchronizer(
-            [self.depth_sub, self.detections_sub], queue_size=20, slop=0.5)
-        self._synchronizer.registerCallback(self.process_detection)
-
-        # services
-        self._srv = self.create_service(Person, 'person_name', self.person_setting)
-        # # Client
-        self.target_client = self.create_client(TargetPose,'target_pose',qos_profile=srv_qos_profile)
-        while not self.target_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('service not available, waiting again...')
-        self.req = TargetPose.Request()
-        self.res_done = True
 
     def target_request(self, x,y,z):
-        self.req.x = x
-        self.req.y = y
-        self.req.z = z
-        self.req.w = 1.0
-        self.get_logger().info(f'Sending: x : {x}  y:  {y}   z: {z} w: 1.0')
-        self.res = self.target_client.call_async(self.req)
-        # Process events until the response is received
-        if self.res_done == False:
-            self.res_done = True
-            self.get_logger().info('Result: %s' % self.res.result())
-        else:
-            self.res_done = False
-            self.get_logger().error('Service call failed %r' % (self.res.exception(),))
-        # rclpy.spin_until_future_complete(self, self.res)
-        # if self.res.result() is not None:
-        #     self.get_logger().info('Result: %s' % self.res.result())
-        # else:
-        #     self.get_logger().error('Service call failed %r' % (self.res.exception(),))
-    
+        if not self.request_pending:
+            self.req.x = x
+            self.req.y = y
+            self.req.z = z
+            self.req.w = 1.0
+            self.request_pending = True
+            self.get_logger().info(f'Sending: x : {x}  y:  {y}   z: {z} w: 1.0')
+            self.res = self.target_client.call_async(self.req)
+            self.res.add_done_callback(self.target_response_callback)
+
+    def target_response_callback(self, future):
+        try:
+            response = future.result()
+            self.get_logger().info(f'Result: {response}')
+        except Exception as e:
+            self.get_logger().error(f'Service call failed {e}')
+        finally:
+            self.request_pending = False
+
     def person_setting(self, req: Person.Request, res: Person.Response ) -> Person.Response:
         self.person_name = req.person_name
         res.success_name = self.person_name
@@ -127,7 +128,7 @@ class WorldNode(Node):
         
         return sh_point[0], sh_point[1]
     
-    def process_detection(self, depth_msg: Image, face_detection_msg: DetectionArray):
+    def person_tf(self, depth_msg: Image, face_detection_msg: DetectionArray):
         point_x = 0
         point_y = 0
         detection: Detection
@@ -182,8 +183,7 @@ class WorldNode(Node):
                 self.get_logger().info(f'depth : {depth} x:{transform_stamped.transform.translation.x} | y:{transform_stamped.transform.translation.y} | z:{transform_stamped.transform.translation.z} ')
 
                 # # Publish the object position in world coordinates
-                if self.res_done == True:
-                    self.target_request(transform_stamped.transform.translation.x,transform_stamped.transform.translation.y,transform_stamped.transform.translation.z)
+                self.target_request(transform_stamped.transform.translation.x,transform_stamped.transform.translation.y,transform_stamped.transform.translation.z)
 
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
                 self.get_logger().error(f"Failed to lookup transform: {e}")

@@ -98,7 +98,7 @@ class Adaface_ros(LifecycleNode):
             self, Image, "image_raw", qos_profile=self.image_qos_profile)
 
         self._synchronizer = message_filters.TimeSynchronizer(
-            (image_sub, tracking_sub), 10)
+            (image_sub, tracking_sub), 100)
         self._synchronizer.registerCallback(self.adaface_main)
 
         return TransitionCallbackReturn.SUCCESS
