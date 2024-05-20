@@ -85,7 +85,10 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([FindPackageShare("realsense2_camera"), '/launch/rs_launch.py']),
         launch_arguments=[
             ('depth_module.profile', '640x480x60'),
+            ('depth_module.depth_profile', '640x480x60'),
             ('rgb_camera.profile', '640x480x60'),
+            ('rgb_camera.color_profile', '640x480x60'),
+            ('depth_module.infra_profile', '640x480x60'),
             ('pointcloud.enable', 'true')
         ], 
         condition=IfCondition(PythonExpression([LaunchConfiguration("video"), '== 0'])),
