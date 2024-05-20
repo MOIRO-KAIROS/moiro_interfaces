@@ -95,7 +95,7 @@ class WorldNode(Node):
             self.req.z = z
             self.req.w = 1.0
             self.request_pending = True
-            self.get_logger().info(f'Sending: x : {x}  y:  {y}   z: {z} w: 1.0')
+            self.get_logger().info('\033[93m Sending: x : {}  y:  {}   z: {} w: 1.0\033[0m'.format(x,y,z))
             self.res = self.target_client.call_async(self.req)
             self.res.add_done_callback(self.target_response_callback)
 
@@ -106,6 +106,7 @@ class WorldNode(Node):
         except Exception as e:
             self.get_logger().error(f'Service call failed {e}')
         finally:
+            self.get_logger().info('finally')
             self.request_pending = False
 
     def person_setting(self, req: Person.Request, res: Person.Response ) -> Person.Response:
@@ -132,7 +133,7 @@ class WorldNode(Node):
         point_x = 0
         point_y = 0
         detection: Detection
-        self.get_logger().info('\033[93m ======================={}======================= \033[0m'.format(self.person_name))
+        # self.get_logger().info('\033[93m ======================={}======================= \033[0m'.format(self.person_name))
                 
         for detection in face_detection_msg.detections:
             if detection.facebox.name == self.person_name:    
@@ -180,10 +181,12 @@ class WorldNode(Node):
                 transform_stamped.transform.translation.z = float("{:.3f}".format(object_position_world_frame[1] / 1000.0))
                 transform_stamped.transform.rotation.w = 1.0
                 self.person_broadcaster.sendTransform(transform_stamped)
-                self.get_logger().info(f'depth : {depth} x:{transform_stamped.transform.translation.x} | y:{transform_stamped.transform.translation.y} | z:{transform_stamped.transform.translation.z} ')
+                self.get_logger().info('\033[93m depth {} : x:{} | y:{} | z:{}\033[0m'.format(depth, transform_stamped.transform.translation.x, transform_stamped.transform.translation.y, transform_stamped.transform.translation.z))
+                # self.get_logger().info(f'\033[depth : {depth} x:{transform_stamped.transform.translation.x} | y:{transform_stamped.transform.translation.y} | z:{transform_stamped.transform.translation.z}]\033')
 
                 # # Publish the object position in world coordinates
                 self.target_request(transform_stamped.transform.translation.x,transform_stamped.transform.translation.y,transform_stamped.transform.translation.z)
+                self.get_logger().info('end request')
 
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
                 self.get_logger().error(f"Failed to lookup transform: {e}")
@@ -202,7 +205,7 @@ def main(args=None):
     rclpy.init(args=args)
     try:
         node = WorldNode()
-        executor = MultiThreadedExecutor()
+        executor = MultiThreadedExecutor(num_threads=2)
         executor.add_node(node)
         executor.spin()
     except KeyboardInterrupt:
