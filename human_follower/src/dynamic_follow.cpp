@@ -4,8 +4,8 @@
 #include <yolov8_msgs/srv/target_pose.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 
-#define R_VEL   0.2         // rotate velocity
-#define F_VEL   0.2         // forward velocity
+#define R_VEL   0.3         // rotate velocity
+#define F_VEL   0.1         // forward velocity
 // #define HEIGHT  480
 // #define WIDTH   640
 
@@ -78,12 +78,12 @@ private:
 
         // 로봇의 회전 제어: y 값을 사용하여 카메라 중앙에 정렬
         if (person_y < -0.05)
-            velOutput.angular.z = R_VEL;
+            velOutput.angular.z = - R_VEL;
         else if (person_y > 0.05)
-            velOutput.angular.z = -R_VEL;
+            velOutput.angular.z = R_VEL;
         else
             velOutput.angular.z = 0;
-
+        
         // 로봇의 전진/후진 제어: x 값을 사용하여 특정 거리 유지
         if (person_x > 0.5) {
             RCLCPP_INFO(this->get_logger(), "FORWARD");
@@ -92,7 +92,8 @@ private:
             RCLCPP_INFO(this->get_logger(), "STOP");
             velOutput.linear.x = 0;
         }
-
+        
+        RCLCPP_INFO(this->get_logger(), "linear - x : %f  angular - z: %f ", velOutput.linear.x, velOutput.angular.z );
         pub_->publish(velOutput);
     }
 
