@@ -10,7 +10,7 @@
 // #define WIDTH   640
 
 struct HumanPose {
-    bool valid;
+    bool valid = false;
     std::tuple<double, double, double> goal; // (x, y, z) 좌표
 };
 
@@ -22,18 +22,16 @@ HumanPose p;
 class HumanFollower : public rclcpp::Node {
 public:
     HumanFollower() : Node("human_follower") {
-        // // QoS Profile 설정
-        // rmw_qos_profile_t custom_qos_profile = rmw_qos_profile_default;
-        // custom_qos_profile.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-        // custom_qos_profile.depth = 10;
-        // custom_qos_profile.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
-
         RCLCPP_INFO(this->get_logger(), "Initialized node");
-        srv_client = this->create_client<yolov8_msgs::srv::TargetPose>("yolo/target_pose"); 
-        // , std::bind(&HumanFollower::handle_request, this, std::placeholders::_1, std::placeholders::_2), custom_qos_profile);
-        pub = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+
+        pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+        srv_client = this->create_client<yolov8_msgs::srv::TargetPose>("yolo/target_pose");
+
+        // 주기적으로 check_and_request 호출
         timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(500), std::bind(&HumanFollower::check_and_request, this));
+            std::chrono::milliseconds(500),
+            std::bind(&HumanFollower::check_and_request, this)
+        );
     }
 
 private:
@@ -45,40 +43,26 @@ private:
 
     void request_target() {
         auto request = std::make_shared<yolov8_msgs::srv::TargetPose::Request>();
-        // std::shared_ptr<yolov8_msgs::srv::TargetPose::Response> response;
-        while (!srv_client->wait_for_service(std::chrono::seconds(1))) {
-            if (!rclcpp::ok()) {
-                RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the service. Exiting.");
-                return;
-            }
-            RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Service not available, waiting again...");
-        }
-
-        auto result = srv_client->async_send_request(request);
-        result.wait();
-        try {
-            auto response = result.get();
-            handle_response(response);
-        } catch (const std::exception &e) {
-            RCLCPP_ERROR(this->get_logger(), "Service call failed: %s", e.what());
-        }
+        request->prepared = true;
+        auto future = srv_client->async_send_request(
+            request, std::bind(&HumanFollower::handle_response, this, std::placeholders::_1)
+        );
     }
 
-    void handle_response(
-        const std::shared_ptr<yolov8_msgs::srv::TargetPose::Response> response){
+    void handle_response(rclcpp::Client<yolov8_msgs::srv::TargetPose>::SharedFuture future) {
         try {
-            // Adjust the x-coordinate to be centered
+            auto response = future.get();
             p.goal = std::make_tuple(response->x, response->y, response->z);
             p.valid = true;
 
             RCLCPP_INFO(this->get_logger(), "Target Pose: x=%f, y=%f, z=%f", std::get<0>(p.goal), std::get<1>(p.goal), std::get<2>(p.goal));
 
-            // Update the robot's velocity command
             if (p.valid) {
                 GettingHuman();
             } else {
                 LostHuman();
             }
+            p.valid = false;
         } catch (const std::exception &e) {
             p.valid = false;
             RCLCPP_ERROR(this->get_logger(), "Failed to get target pose: %s", e.what());
@@ -91,7 +75,7 @@ private:
         double person_x = std::get<0>(p.goal);
         double person_y = std::get<1>(p.goal);
 
-        // Robot's rotation control: use y value to align to the center of the camera
+        // 로봇의 회전 제어: y 값을 사용하여 카메라 중앙에 정렬
         if (person_y < -0.05)
             velOutput.angular.z = R_VEL;
         else if (person_y > 0.05)
@@ -99,30 +83,27 @@ private:
         else
             velOutput.angular.z = 0;
 
-        // Robot's forward/backward control: use x value to maintain a certain distance
+        // 로봇의 전진/후진 제어: x 값을 사용하여 특정 거리 유지
         if (person_x > 0.5) {
             RCLCPP_INFO(this->get_logger(), "FORWARD");
             velOutput.linear.x = F_VEL;
-         }// else if (person_x < - 0.05) {
-        //     RCLCPP_INFO(this->get_logger(), "BACKWARD");
-        //     velOutput.linear.x = - F_VEL;
-        else {
+        } else {
             RCLCPP_INFO(this->get_logger(), "STOP");
             velOutput.linear.x = 0;
         }
 
-        pub->publish(velOutput);
+        pub_->publish(velOutput);
     }
 
     void LostHuman() {
         RCLCPP_ERROR(this->get_logger(), "I LOST HUMAN");
         velOutput.linear.x = 0;
         velOutput.angular.z = 0;
-        pub->publish(velOutput);
+        pub_->publish(velOutput);
     }
 
     rclcpp::Client<yolov8_msgs::srv::TargetPose>::SharedPtr srv_client;
-    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub;
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub_;
     rclcpp::TimerBase::SharedPtr timer_;
 };
 
