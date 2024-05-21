@@ -22,6 +22,11 @@ class WorldNode(Node):
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
         self.cv_bridge = CvBridge()
+
+        self.x = 0.0
+        self.y = 0.0
+        self.z = 0.0
+        # self.w = 1.0
         
         self.person_broadcaster = tf2_ros.TransformBroadcaster(self)
         self.static_tf()
@@ -58,13 +63,16 @@ class WorldNode(Node):
 
         # services
         self._srv = self.create_service(Person, 'person_name', self.person_setting)
+        self.target_server = self.create_service(TargetPose,'target_pose', self.target_setting,qos_profile=srv_qos_profile)
 
-        # Client
-        self.target_client = self.create_client(TargetPose,'target_pose',qos_profile=srv_qos_profile)
-        while not self.target_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('service not available, waiting again...')
-        self.req = TargetPose.Request()
-        self.request_pending = False
+    def target_setting(self,req:TargetPose.Request, res: TargetPose.Response):
+        self.get_logger().info(f'{req.prepared}')
+        if req.prepared == True:
+            res.x = self.x
+            res.y = self.y
+            res.z = self.z
+            res.w = 1.0
+            self.get_logger().info('\033[93m Sending: x : {}  y:  {}   z: {} w: 1.0\033[0m'.format(self.x,self.y,self.z))
 
     def static_tf(self):
         self.static_broadcaster = tf2_ros.StaticTransformBroadcaster(self)
@@ -87,27 +95,6 @@ class WorldNode(Node):
 
         # Publish the static transform
         self.static_broadcaster.sendTransform(self.static_transform_stamped)
-
-    def target_request(self, x,y,z):
-        if not self.request_pending:
-            self.req.x = x
-            self.req.y = y
-            self.req.z = z
-            self.req.w = 1.0
-            self.request_pending = True
-            self.get_logger().info('\033[93m Sending: x : {}  y:  {}   z: {} w: 1.0\033[0m'.format(x,y,z))
-            self.res = self.target_client.call_async(self.req)
-            self.res.add_done_callback(self.target_response_callback)
-
-    def target_response_callback(self, res):
-        try:
-            response = res.result()
-            self.get_logger().info(f'Result: {response}')
-        except Exception as e:
-            self.get_logger().error(f'Service call failed {e}')
-        finally:
-            self.get_logger().info('finally')
-            self.request_pending = False
 
     def person_setting(self, req: Person.Request, res: Person.Response ) -> Person.Response:
         self.person_name = req.person_name
@@ -176,16 +163,17 @@ class WorldNode(Node):
                 transform_stamped.header.frame_id = 'camera_link'
                 transform_stamped.child_frame_id = 'person_link'
                 
-                transform_stamped.transform.translation.x = float("{:.3f}".format(object_position_world_frame[2] / 1000.0))
-                transform_stamped.transform.translation.y =  float("{:.3f}".format(object_position_world_frame[0] / 1000.0))
-                transform_stamped.transform.translation.z = float("{:.3f}".format(object_position_world_frame[1] / 1000.0))
+                self.x = float("{:.3f}".format(object_position_world_frame[2] / 1000.0))
+                self.y =  float("{:.3f}".format(object_position_world_frame[0] / 1000.0))
+                self.z = float("{:.3f}".format(object_position_world_frame[1] / 1000.0))
+                
+                # For debugging
+                transform_stamped.transform.translation.x = self.x 
+                transform_stamped.transform.translation.y =  self.y
+                transform_stamped.transform.translation.z = self.z 
                 transform_stamped.transform.rotation.w = 1.0
                 self.person_broadcaster.sendTransform(transform_stamped)
-                self.get_logger().info('\033[93m depth {} : x:{} | y:{} | z:{}\033[0m'.format(depth, transform_stamped.transform.translation.x, transform_stamped.transform.translation.y, transform_stamped.transform.translation.z))
-
-                # # Publish the object position in world coordinates
-                self.target_request(transform_stamped.transform.translation.x,transform_stamped.transform.translation.y,transform_stamped.transform.translation.z)
-                self.get_logger().info('end request')
+                self.get_logger().info('\033[93m depth {} : x:{} | y:{} | z:{}\033[0m'.format(depth, self.x, self.y, self.z))
 
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
                 self.get_logger().error(f"Failed to lookup transform: {e}")
