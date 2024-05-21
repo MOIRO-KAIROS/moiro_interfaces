@@ -27,6 +27,7 @@ class WorldNode(Node):
         self.y = 0.0
         self.z = 0.0
         # self.w = 1.0
+        self.status = False
         
         self.person_broadcaster = tf2_ros.TransformBroadcaster(self)
         self.static_tf()
@@ -63,7 +64,7 @@ class WorldNode(Node):
 
         # services
         self._srv = self.create_service(Person, 'person_name', self.person_setting)
-        self.target_server = self.create_service(TargetPose,'target_pose', self.target_setting,qos_profile=srv_qos_profile)
+        self.target_server = self.create_service(TargetPose,'target_pose', self.target_setting, qos_profile=srv_qos_profile)
 
     def target_setting(self,req:TargetPose.Request, res: TargetPose.Response) -> TargetPose.Response:
         # self.get_logger().info(f'{req.prepared}')
@@ -72,6 +73,7 @@ class WorldNode(Node):
             res.y = self.y
             res.z = self.z
             res.w = 1.0
+            res.status = self.status
             self.get_logger().info('\033[93m Sending: x : {}  y:  {}  z: {} w: 1.0\033[0m'.format(self.x,self.y,self.z))
             return res
 
@@ -122,13 +124,15 @@ class WorldNode(Node):
         point_y = 0
         detection: Detection
         # self.get_logger().info('\033[93m ======================={}======================= \033[0m'.format(self.person_name))
-                
+        self.status = False
         for detection in face_detection_msg.detections:
             if detection.facebox.name == self.person_name:    
                 point_x, point_y = self.setXY(detection.keypoints)
+                self.status = True
                 break # 이후 프로세스 진행
         
         if point_x == 0:
+            self.status = False
             return # 프로세스 종료
         
         depth_frame = self.cv_bridge.imgmsg_to_cv2(depth_msg)

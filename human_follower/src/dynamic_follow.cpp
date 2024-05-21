@@ -54,10 +54,11 @@ private:
             auto response = future.get();
             p.goal = std::make_tuple(response->x, response->y, response->z);
             p.valid = true;
+            RCLCPP_INFO(this->get_logger(), "Lost Human: %d", (response->status));
 
             RCLCPP_INFO(this->get_logger(), "Target Pose: x=%f, y=%f, z=%f", std::get<0>(p.goal), std::get<1>(p.goal), std::get<2>(p.goal));
 
-            if (p.valid) {
+            if (p.valid && response->status) {
                 GettingHuman();
             } else {
                 LostHuman();
