@@ -6,8 +6,8 @@
 
 #define R_VEL   0.2         // rotate velocity
 #define F_VEL   0.2         // forward velocity
-#define HEIGHT  480
-#define WIDTH   640
+// #define HEIGHT  480
+// #define WIDTH   640
 
 struct HumanPose {
     bool valid;
@@ -49,10 +49,10 @@ private:
 
             // Update the robot's velocity command
             if (p.valid) {
-                RCLCPP_INFO(this->get_logger(), "I DETECT HUMAN");
+                // RCLCPP_INFO(this->get_logger(), "I DETECT HUMAN");
                 GettingHuman();
             } else {
-                RCLCPP_ERROR(this->get_logger(), "I LOST HUMAN");
+                // RCLCPP_ERROR(this->get_logger(), "I LOST HUMAN");
                 LostHuman();
             }
 
@@ -66,25 +66,26 @@ private:
     }
 
     void GettingHuman() {
+        RCLCPP_INFO(this->get_logger(), "I DETECT HUMAN");
         double person_x = std::get<0>(p.goal);
         double person_y = std::get<1>(p.goal);
 
         // Robot's rotation control: use x value to align to the center of the camera
-        if (person_x < -0.05)
+        if (person_y < -0.05)
             velOutput.angular.z = R_VEL;
-        else if (person_x > 0.05)
+        else if (person_y > 0.05)
             velOutput.angular.z = -R_VEL;
         else
             velOutput.angular.z = 0;
 
         // Robot's forward/backward control: use z value to maintain a certain distance
-        if (person_y > target_distance + 0.1) {
+        if (person_x > 0.5) {
             RCLCPP_INFO(this->get_logger(), "FORWARD");
             velOutput.linear.x = F_VEL;
-        } else if (person_y < target_distance - 0.1) {
-            RCLCPP_INFO(this->get_logger(), "BACKWARD");
-            velOutput.linear.x = -F_VEL;
-        } else {
+         }// else if (person_x < - 0.05) {
+        //     RCLCPP_INFO(this->get_logger(), "BACKWARD");
+        //     velOutput.linear.x = - F_VEL;
+        else {
             RCLCPP_INFO(this->get_logger(), "STOP");
             velOutput.linear.x = 0;
         }
@@ -93,6 +94,7 @@ private:
     }
 
     void LostHuman() {
+        RCLCPP_ERROR(this->get_logger(), "I LOST HUMAN");
         velOutput.linear.x = 0;
         velOutput.angular.z = 0;
         publisher_->publish(velOutput);

@@ -99,9 +99,9 @@ class WorldNode(Node):
             self.res = self.target_client.call_async(self.req)
             self.res.add_done_callback(self.target_response_callback)
 
-    def target_response_callback(self, future):
+    def target_response_callback(self, res):
         try:
-            response = future.result()
+            response = res.result()
             self.get_logger().info(f'Result: {response}')
         except Exception as e:
             self.get_logger().error(f'Service call failed {e}')
@@ -182,7 +182,6 @@ class WorldNode(Node):
                 transform_stamped.transform.rotation.w = 1.0
                 self.person_broadcaster.sendTransform(transform_stamped)
                 self.get_logger().info('\033[93m depth {} : x:{} | y:{} | z:{}\033[0m'.format(depth, transform_stamped.transform.translation.x, transform_stamped.transform.translation.y, transform_stamped.transform.translation.z))
-                # self.get_logger().info(f'\033[depth : {depth} x:{transform_stamped.transform.translation.x} | y:{transform_stamped.transform.translation.y} | z:{transform_stamped.transform.translation.z}]\033')
 
                 # # Publish the object position in world coordinates
                 self.target_request(transform_stamped.transform.translation.x,transform_stamped.transform.translation.y,transform_stamped.transform.translation.z)

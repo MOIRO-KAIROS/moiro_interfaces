@@ -130,6 +130,7 @@ def generate_launch_description():
         namespace=namespace,
         parameters=[{"depth_image_reliability": image_reliability,
                      "person_name": person_name,
+                     "use_sim_time":True,
         }],
         remappings=[
             ("depth_image", "/camera/camera/depth/image_rect_raw"),
