@@ -65,14 +65,15 @@ class WorldNode(Node):
         self._srv = self.create_service(Person, 'person_name', self.person_setting)
         self.target_server = self.create_service(TargetPose,'target_pose', self.target_setting,qos_profile=srv_qos_profile)
 
-    def target_setting(self,req:TargetPose.Request, res: TargetPose.Response):
-        self.get_logger().info(f'{req.prepared}')
-        if req.prepared == True:
+    def target_setting(self,req:TargetPose.Request, res: TargetPose.Response) -> TargetPose.Response:
+        # self.get_logger().info(f'{req.prepared}')
+        # if req.prepared == True:
             res.x = self.x
             res.y = self.y
             res.z = self.z
             res.w = 1.0
-            self.get_logger().info('\033[93m Sending: x : {}  y:  {}   z: {} w: 1.0\033[0m'.format(self.x,self.y,self.z))
+            self.get_logger().info('\033[93m Sending: x : {}  y:  {}  z: {} w: 1.0\033[0m'.format(self.x,self.y,self.z))
+            return res
 
     def static_tf(self):
         self.static_broadcaster = tf2_ros.StaticTransformBroadcaster(self)
