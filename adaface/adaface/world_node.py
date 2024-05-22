@@ -3,7 +3,7 @@ from rclpy.node import Node
 import message_filters
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
-from moiro_interfaces.msg import DetectionInfo, DetectionArray, Detection, KeyPoint2DArray
+from moiro_interfaces.msg import DetectionArray, Detection, KeyPoint2DArray
 from moiro_interfaces.srv import Person, TargetPose
 from geometry_msgs.msg import PoseStamped, TransformStamped, Pose
 import transforms3d.quaternions as txq

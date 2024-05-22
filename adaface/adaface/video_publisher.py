@@ -8,7 +8,7 @@ from cv_bridge import CvBridge, CvBridgeError
 class ImagePublisher(Node):
     def __init__(self):
         super().__init__("image_publisher")
-        file_path = '/home/minha/moiro_ws/src/faceRec_ros2/adaface/adaface/script/video/iAM.mp4'
+        file_path = '/home/minha/moiro_ws/src/moiro_vision/adaface/adaface/script/video/iAM.mp4'
         self.bridge = CvBridge()
         self.cap = cv2.VideoCapture(file_path)
         self.pub = self.create_publisher(Image, "video_topic", 10)

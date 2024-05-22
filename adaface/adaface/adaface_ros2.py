@@ -21,7 +21,7 @@ import numpy as np
 import sys
 import os
 
-sys.path.append(os.path.join(os.path.expanduser("~"), "moiro_ws/src/faceRec_ros2/adaface/adaface/script"))
+sys.path.append(os.path.join(os.path.expanduser("~"), "moiro_ws/src/moiro_vision/adaface/adaface/script"))
 
 from adaface.script.adaface  import AdaFace
 

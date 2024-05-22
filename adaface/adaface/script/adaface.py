@@ -9,8 +9,8 @@ from PIL import Image
 import sys
 import time
 
-sys_path = os.path.join(os.path.expanduser("~"), "moiro_ws/src/faceRec_ros2/adaface/adaface/script")
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+sys_path = os.path.join(os.path.expanduser("~"), "moiro_ws/src/moiro_vision/adaface/adaface/script")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.set_grad_enabled(False) # for 메모리
 
 adaface_models = {

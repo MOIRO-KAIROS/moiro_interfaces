@@ -24,9 +24,10 @@ def generate_launch_description():
             ("image_reliability", "2", "Specific reliability QoS of the input image topic (0=system default, 1=Reliable, 2=Best Effort)"),
             ("namespace", "vision", "Namespace for the nodes"),
             ("detections", "/vision/tracking", "YOLOv8 tracking"),
-            ("person_name","Uninitialzed","Write the name you want to detect")
+            ("person_name", "Uninitialzed","Write the name you want to detect")
         ]
     ]
+
     webcam_topic_cmd = DeclareLaunchArgument(
         "input_image_topic",
         default_value="/camera/camera/color/image_raw",
@@ -35,6 +36,7 @@ def generate_launch_description():
             LaunchConfiguration("video"),
             '== 0',
             ])))
+    
     video_topic_cmd = DeclareLaunchArgument(
         "input_image_topic",
         default_value="/adaface/video_topic",
@@ -48,7 +50,7 @@ def generate_launch_description():
     face_recognition_node = Node(
         package="adaface",
         executable="face_recognition",
-        name="face_recongnition",
+        name="face_recognition",
         namespace=LaunchConfiguration("namespace"),
         parameters=[{
             "fr_weight": LaunchConfiguration("fr_weight"),
@@ -80,6 +82,22 @@ def generate_launch_description():
         ]))
     )
 
+    world_node_cmd = Node(
+        package="adaface",
+        executable="world_node",
+        name="world_node",
+        namespace=LaunchConfiguration("namespace"),
+        parameters=[{
+            "depth_image_reliability": LaunchConfiguration("image_reliability"),
+            "person_name": LaunchConfiguration("person_name"),
+            "use_sim_time": True,
+        }],
+        remappings=[
+            ("depth_image", "/camera/camera/depth/image_rect_raw"),
+            ("detections", "/vision/adaface_msg")
+        ]
+    )
+
     # Include launch descriptions
     realsense_launch_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([FindPackageShare("realsense2_camera"), '/launch/rs_launch.py']),
@@ -109,6 +127,6 @@ def generate_launch_description():
 
     # Add actions to launch description
     [ld.add_action(action) for action in launch_arguments]
-    [ld.add_action(action) for action in [webcam_topic_cmd,video_topic_cmd]]
-    [ld.add_action(action) for action in [realsense_launch_cmd,video_publisher_node, yolov8_launch_cmd, face_recognition_node]] #
+    [ld.add_action(action) for action in [webcam_topic_cmd, video_topic_cmd]]
+    [ld.add_action(action) for action in [realsense_launch_cmd,video_publisher_node, yolov8_launch_cmd, face_recognition_node, world_node_cmd]] #
     return ld
