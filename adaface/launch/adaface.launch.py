@@ -22,8 +22,8 @@ def generate_launch_description():
             ("video", "0", "0: Webcam, 1: Specific video path"),
             # ("input_image_topic", "/camera/camera/color/image_raw", "Input image topic"),
             ("image_reliability", "2", "Specific reliability QoS of the input image topic (0=system default, 1=Reliable, 2=Best Effort)"),
-            ("namespace_adaface", "adaface", "Namespace for the nodes"),
-            ("detections", "/yolo/tracking", "YOLOv8 tracking"),
+            ("namespace", "vision", "Namespace for the nodes"),
+            ("detections", "/vision/tracking", "YOLOv8 tracking"),
             ("person_name","Uninitialzed","Write the name you want to detect")
         ]
     ]
@@ -49,7 +49,7 @@ def generate_launch_description():
         package="adaface",
         executable="face_recognition",
         name="face_recongnition",
-        namespace=LaunchConfiguration("namespace_adaface"),
+        namespace=LaunchConfiguration("namespace"),
         parameters=[{
             "fr_weight": LaunchConfiguration("fr_weight"),
             "device": LaunchConfiguration("device"),
@@ -72,7 +72,7 @@ def generate_launch_description():
         package="adaface",
         executable="video_publisher",
         name="video_publisher",
-        namespace=LaunchConfiguration("namespace_adaface"),
+        namespace=LaunchConfiguration("namespace"),
         output='screen',
         condition=IfCondition(PythonExpression([
             LaunchConfiguration("video"),

@@ -25,7 +25,7 @@ public:
         RCLCPP_INFO(this->get_logger(), "Initialized node");
 
         pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
-        srv_client = this->create_client<yolov8_msgs::srv::TargetPose>("yolo/target_pose");
+        srv_client = this->create_client<yolov8_msgs::srv::TargetPose>("vision/target_pose");
 
         // 주기적으로 check_and_request 호출
         timer_ = this->create_wall_timer(

@@ -70,7 +70,7 @@ def generate_launch_description():
     namespace = LaunchConfiguration("namespace")
     namespace_cmd = DeclareLaunchArgument(
         "namespace",
-        default_value="yolo",
+        default_value="vision",
         description="Namespace for the nodes")
     
     person_name = LaunchConfiguration("person_name")
@@ -119,7 +119,7 @@ def generate_launch_description():
         }],
         remappings=[
             ("image_raw", input_image_topic),
-            ("detections", "/adaface/adaface_msg")
+            ("detections", "/vision/adaface_msg")
         ]
     )
 
@@ -134,7 +134,7 @@ def generate_launch_description():
         }],
         remappings=[
             ("depth_image", "/camera/camera/depth/image_rect_raw"),
-            ("detections", "/adaface/adaface_msg")
+            ("detections", "/vision/adaface_msg")
         ]
     )
 
