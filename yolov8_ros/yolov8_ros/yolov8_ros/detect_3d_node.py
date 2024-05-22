@@ -32,11 +32,11 @@ from tf2_ros.transform_listener import TransformListener
 
 from sensor_msgs.msg import CameraInfo, Image
 from geometry_msgs.msg import TransformStamped
-from yolov8_msgs.msg import Detection
-from yolov8_msgs.msg import DetectionArray
-from yolov8_msgs.msg import KeyPoint3D
-from yolov8_msgs.msg import KeyPoint3DArray
-from yolov8_msgs.msg import BoundingBox3D
+from moiro_interfaces.msg import Detection
+from moiro_interfaces.msg import DetectionArray
+from moiro_interfaces.msg import KeyPoint3D
+from moiro_interfaces.msg import KeyPoint3DArray
+from moiro_interfaces.msg import BoundingBox3D
 # from yolov8_msgs.msg import DetectionInfo
 
 

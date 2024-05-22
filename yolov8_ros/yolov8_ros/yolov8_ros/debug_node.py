@@ -36,8 +36,8 @@ from ultralytics.utils.plotting import Annotator, colors
 # import time
 
 from sensor_msgs.msg import Image
-from yolov8_msgs.msg import KeyPoint2D
-from yolov8_msgs.msg import Detection, DetectionArray
+from moiro_interfaces.msg import KeyPoint2D
+from moiro_interfaces.msg import Detection, DetectionArray
 
 class DebugNode(LifecycleNode):
 

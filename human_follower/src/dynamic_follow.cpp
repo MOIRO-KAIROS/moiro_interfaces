@@ -1,7 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <vector>
 #include <math.h>
-#include <yolov8_msgs/srv/target_pose.hpp>
+#include <moiro_interfaces/srv/target_pose.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 
 #define R_VEL   0.3         // rotate velocity
@@ -25,7 +25,7 @@ public:
         RCLCPP_INFO(this->get_logger(), "Initialized node");
 
         pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
-        srv_client = this->create_client<yolov8_msgs::srv::TargetPose>("vision/target_pose");
+        srv_client = this->create_client<moiro_interfaces::srv::TargetPose>("vision/target_pose");
 
         // 주기적으로 check_and_request 호출
         timer_ = this->create_wall_timer(
@@ -42,14 +42,14 @@ private:
     }
 
     void request_target() {
-        auto request = std::make_shared<yolov8_msgs::srv::TargetPose::Request>();
+        auto request = std::make_shared<moiro_interfaces::srv::TargetPose::Request>();
         request->prepared = true;
         auto future = srv_client->async_send_request(
             request, std::bind(&HumanFollower::handle_response, this, std::placeholders::_1)
         );
     }
 
-    void handle_response(rclcpp::Client<yolov8_msgs::srv::TargetPose>::SharedFuture future) {
+    void handle_response(rclcpp::Client<moiro_interfaces::srv::TargetPose>::SharedFuture future) {
         try {
             auto response = future.get();
             p.goal = std::make_tuple(response->x, response->y, response->z);
@@ -104,7 +104,7 @@ private:
         pub_->publish(velOutput);
     }
 
-    rclcpp::Client<yolov8_msgs::srv::TargetPose>::SharedPtr srv_client;
+    rclcpp::Client<moiro_interfaces::srv::TargetPose>::SharedPtr srv_client;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub_;
     rclcpp::TimerBase::SharedPtr timer_;
 };

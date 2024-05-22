@@ -35,13 +35,13 @@ from ultralytics.engine.results import Keypoints
 from torch import cuda
 
 from sensor_msgs.msg import Image
-from yolov8_msgs.msg import Point2D
-from yolov8_msgs.msg import BoundingBox2D
-from yolov8_msgs.msg import Mask
-from yolov8_msgs.msg import KeyPoint2D
-from yolov8_msgs.msg import KeyPoint2DArray
-from yolov8_msgs.msg import Detection
-from yolov8_msgs.msg import DetectionArray
+from moiro_interfaces.msg import Point2D
+from moiro_interfaces.msg import BoundingBox2D
+from moiro_interfaces.msg import Mask
+from moiro_interfaces.msg import KeyPoint2D
+from moiro_interfaces.msg import KeyPoint2DArray
+from moiro_interfaces.msg import Detection
+from moiro_interfaces.msg import DetectionArray
 
 from std_srvs.srv import SetBool
 

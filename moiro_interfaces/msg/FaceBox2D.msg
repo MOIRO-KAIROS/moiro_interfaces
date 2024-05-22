@@ -7,4 +7,4 @@ float64 score
 bool isdetect
 
 # YOLO format's 2D bounding box surrounding the object in pixels
-yolov8_msgs/BBoxYolo bbox
+moiro_interfaces/BBoxYolo bbox

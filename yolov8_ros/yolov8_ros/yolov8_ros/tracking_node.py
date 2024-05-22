@@ -36,8 +36,8 @@ from ultralytics.utils.checks import check_requirements, check_yaml
 from ultralytics.engine.results import Boxes
 
 from sensor_msgs.msg import Image
-from yolov8_msgs.msg import Detection
-from yolov8_msgs.msg import DetectionArray
+from moiro_interfaces.msg import Detection
+from moiro_interfaces.msg import DetectionArray
 
 
 class TrackingNode(LifecycleNode):

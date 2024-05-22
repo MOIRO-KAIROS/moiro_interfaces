@@ -13,8 +13,8 @@ import cv2
 import message_filters
 from cv_bridge import CvBridge
 
-from yolov8_msgs.msg import Detection
-from yolov8_msgs.msg import DetectionArray
+from moiro_interfaces.msg import Detection
+from moiro_interfaces.msg import DetectionArray
 from sensor_msgs.msg._image import Image
 
 import numpy as np

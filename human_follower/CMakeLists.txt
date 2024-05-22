@@ -11,7 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(yolov8_msgs REQUIRED)
+find_package(moiro_interfaces REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -31,7 +31,7 @@ set(DEPENDENCIES
   "tf2"
   "geometry_msgs"
   "sensor_msgs"
-  "yolov8_msgs"
+  "moiro_interfaces"
 )
 
 # build
