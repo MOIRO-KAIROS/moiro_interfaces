@@ -125,7 +125,7 @@ class WorldNode(Node):
             # Get transform from camera_link to base_link
             try:
                 current_time = self.get_clock().now().to_msg()
-                transform = self.tf_buffer.lookup_transform('base_plate', 'camera_color_frame', rclpy.time.Time())
+                transform = self.tf_buffer.lookup_transform('camera_link', 'camera_color_frame', rclpy.time.Time())
                 camera_position = np.array([transform.transform.translation.x,
                                             transform.transform.translation.y,
                                             transform.transform.translation.z])
@@ -136,6 +136,7 @@ class WorldNode(Node):
 
                 # Transform camera coordinates to world coordinates
                 object_position_camera_frame = camera_coords
+                self.get_logger().info('\033[93m camera_position : {} \033[0m'.format(camera_position)) 
                 object_position_world_frame = np.dot(R, object_position_camera_frame) + camera_position
 
                 transform_stamped = TransformStamped()
@@ -149,9 +150,13 @@ class WorldNode(Node):
                 
                 # For debugging
                 transform_stamped.transform.translation.x = self.x 
-                transform_stamped.transform.translation.y =  self.y
+                transform_stamped.transform.translation.y =  self.y 
                 transform_stamped.transform.translation.z = self.z 
-                transform_stamped.transform.rotation.w = 0.576
+                
+                transform_stamped.transform.rotation.x = 0.0
+                transform_stamped.transform.rotation.y = 0.240207
+                transform_stamped.transform.rotation.z = 0.0
+                transform_stamped.transform.rotation.w = 0.74556
                 self.person_broadcaster.sendTransform(transform_stamped)
                 self.get_logger().info('\033[93m depth {} : x:{} | y:{} | z:{}\033[0m'.format(depth, self.x, self.y, self.z))
 
