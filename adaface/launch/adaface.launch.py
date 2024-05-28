@@ -95,7 +95,8 @@ def generate_launch_description():
         remappings=[
             ("depth_image", "/camera/camera/depth/image_rect_raw"),
             ("detections", "/vision/adaface_msg")
-        ]
+        ],
+        condition=IfCondition(PythonExpression([LaunchConfiguration("option"), '== 1']))
     )
 
     # Include launch descriptions
@@ -109,7 +110,9 @@ def generate_launch_description():
             ('depth_module.infra_profile', '640x480x60'),
             ('pointcloud.enable', 'true')
         ], 
-        condition=IfCondition(PythonExpression([LaunchConfiguration("video"), '== 0'])),
+        condition=IfCondition(PythonExpression([
+                '(', LaunchConfiguration("video"), ' == 0) and (', LaunchConfiguration("option"), ' == 1)'
+            ]))
     )
 
     yolov8_launch_cmd = IncludeLaunchDescription(
@@ -119,7 +122,10 @@ def generate_launch_description():
             ('input_image_topic', LaunchConfiguration("input_image_topic")),
             ('target_frame', 'camera_link'),
             ('person_name',LaunchConfiguration('person_name')),
-        ]
+        ],
+        condition=IfCondition(PythonExpression([
+                '(', LaunchConfiguration("video"), ' == 0) and (', LaunchConfiguration("option"), ' == 1)'
+            ]))
     )
 
     # Construct launch description

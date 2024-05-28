@@ -18,7 +18,6 @@ class WorldNode(Node):
     def __init__(self):
         super().__init__('world_node')
 
-        self.camera_link = 'camera_link'
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
         self.cv_bridge = CvBridge()
@@ -26,7 +25,6 @@ class WorldNode(Node):
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
-        # self.w = 1.0
         self.status = False
         
         self.person_broadcaster = tf2_ros.TransformBroadcaster(self)
@@ -127,7 +125,7 @@ class WorldNode(Node):
             # Get transform from camera_link to base_link
             try:
                 # transform = self.tf_buffer.lookup_transform('camera_link', self.camera_link, rclpy.time.Time())
-                transform = self.tf_buffer.lookup_transform('base_plate', self.camera_link, rclpy.time.Time())
+                transform = self.tf_buffer.lookup_transform('base_plate', 'camera_link', rclpy.time.Time())
                 camera_position = np.array([transform.transform.translation.x,
                                             transform.transform.translation.y,
                                             transform.transform.translation.z])

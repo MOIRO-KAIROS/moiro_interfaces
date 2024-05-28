@@ -3,12 +3,10 @@
 #include <math.h>
 #include <moiro_interfaces/srv/target_pose.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <moiro_interfaces/srv/target_depth.hpp>
 
 #define R_VEL   0.05         // rotate velocity
 #define F_VEL   0.05         // forward velocity
-#define MAX_DEPTH   1.5
-// #define HEIGHT  480
-// #define WIDTH   640
 
 struct HumanPose {
     bool valid = false;
@@ -22,11 +20,20 @@ HumanPose p;
 
 class HumanFollower : public rclcpp::Node {
 public:
-    HumanFollower() : Node("human_follower") {
+    HumanFollower() : Node("human_follower"), MAX_DEPTH(1.5), MIN_DEPTH(1.0)  {
         RCLCPP_INFO(this->get_logger(), "Initialized node");
 
         pub_ = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
         srv_client = this->create_client<moiro_interfaces::srv::TargetPose>("vision/target_pose");
+        
+        this->declare_parameter("max_depth", 1.5);
+        MAX_DEPTH = this->get_parameter("max_depth").as_double();
+        this->declare_parameter("min_depth", 1.0);
+        MIN_DEPTH = this->get_parameter("min_depth").as_double();
+
+        srv_depth = this->create_service<moiro_interfaces::srv::TargetDepth>(
+            "target_depth", std::bind(&HumanFollower::depth_change, this, std::placeholders::_1, std::placeholders::_2) 
+        );
 
         // 주기적으로 check_and_request 호출
         timer_ = this->create_wall_timer(
@@ -36,6 +43,14 @@ public:
     }
 
 private:
+    double MAX_DEPTH;
+    double MIN_DEPTH;
+    void depth_change(const std::shared_ptr<moiro_interfaces::srv::TargetDepth::Request> request,
+                      std::shared_ptr<moiro_interfaces::srv::TargetDepth::Response> response) {
+        MAX_DEPTH = request-> max_depth;
+        MIN_DEPTH = request-> min_depth;
+        response->message = "Tareget Depth Max [" + std::to_string(MAX_DEPTH)+ "],  min [" + std::to_string(MIN_DEPTH) + ']';
+    }
     void check_and_request() {
         if (!p.valid) {
             request_target();
@@ -89,7 +104,12 @@ private:
         if (person_x > MAX_DEPTH) {
             RCLCPP_INFO(this->get_logger(), "FORWARD");
             velOutput.linear.x = F_VEL;
-        } else {
+        }
+        else if (person_x < MIN_DEPTH) {
+            RCLCPP_INFO(this->get_logger(), "BACKWARD");
+            velOutput.linear.x = -F_VEL;
+        }
+        else {
             RCLCPP_INFO(this->get_logger(), "STOP");
             velOutput.linear.x = 0;
         }
@@ -108,6 +128,7 @@ private:
     rclcpp::Client<moiro_interfaces::srv::TargetPose>::SharedPtr srv_client;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub_;
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Service<moiro_interfaces::srv::TargetDepth>::SharedPtr srv_depth;
 };
 
 int main(int argc, char **argv) {

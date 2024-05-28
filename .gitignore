@@ -6,3 +6,8 @@ adaface/adaface/script/face_alignment/__pycache__/
 adaface/adaface/script/__pycache__/
 adaface/adaface/script/face_alignment/mtcnn_pytorch/src/__pycache__/
 adaface/adaface/script/face_alignment/mtcnn_pytorch/src/align_trans.py
+adaface/adaface/script/face_dataset/test/mincheol.jpg
+adaface/adaface/script/face_dataset/test/minha.jpg
+adaface/adaface/script/face_dataset/test/yeonju.jpg
+adaface/adaface/script/face_dataset/test/woosung.jpg
+adaface/adaface/script/face_dataset/test/hyunwoo.jpg

@@ -18,7 +18,6 @@ class WorldNode(Node):
     def __init__(self):
         super().__init__('world_node')
 
-        self.camera_link = 'camera_link'
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
         self.cv_bridge = CvBridge()
@@ -26,11 +25,9 @@ class WorldNode(Node):
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
-        # self.w = 1.0
         self.status = False
         
         self.person_broadcaster = tf2_ros.TransformBroadcaster(self)
-        self.static_tf()
         
         # Parameters
         self.declare_parameter('depth_image_reliability', 1)  # QoSReliabilityPolicy.BEST_EFFORT, Default to BEST_EFFORT
@@ -76,28 +73,6 @@ class WorldNode(Node):
             res.status = self.status
             self.get_logger().info('\033[93m Sending: x : {}  y:  {}  z: {} w: 1.0\033[0m'.format(self.x,self.y,self.z))
             return res
-
-    def static_tf(self):
-        self.static_broadcaster = tf2_ros.StaticTransformBroadcaster(self)
-        # Define the static transform from base_link to camera_link
-        self.static_transform_stamped = TransformStamped()
-        self.static_transform_stamped.header.stamp = self.get_clock().now().to_msg()
-        self.static_transform_stamped.header.frame_id = 'base_link'
-        self.static_transform_stamped.child_frame_id = 'camera_link'
-
-        # Define translation (x, y, z)
-        self.static_transform_stamped.transform.translation.x = 0.1  # Example translation in x-axis
-        self.static_transform_stamped.transform.translation.y = 0.0  # Example translation in y-axis
-        self.static_transform_stamped.transform.translation.z = 0.0  # Example translation in z-axis
-
-        # Define rotation (quaternion: x, y, z, w)
-        self.static_transform_stamped.transform.rotation.x = 0.0
-        self.static_transform_stamped.transform.rotation.y = 0.0
-        self.static_transform_stamped.transform.rotation.z = 0.0
-        self.static_transform_stamped.transform.rotation.w = 1.0  # No rotation in this example
-
-        # Publish the static transform
-        self.static_broadcaster.sendTransform(self.static_transform_stamped)
 
     def person_setting(self, req: Person.Request, res: Person.Response ) -> Person.Response:
         self.person_name = req.person_name
@@ -149,8 +124,7 @@ class WorldNode(Node):
 
             # Get transform from camera_link to base_link
             try:
-                # transform = self.tf_buffer.lookup_transform('camera_link', self.camera_link, rclpy.time.Time())
-                transform = self.tf_buffer.lookup_transform('base_link', self.camera_link, rclpy.time.Time())
+                transform = self.tf_buffer.lookup_transform('base_plate', 'camera_link', rclpy.time.Time())
                 camera_position = np.array([transform.transform.translation.x,
                                             transform.transform.translation.y,
                                             transform.transform.translation.z])
