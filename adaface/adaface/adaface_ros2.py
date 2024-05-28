@@ -133,10 +133,10 @@ class Adaface_ros(LifecycleNode):
         keys_to_keep = []
         for n, detection in enumerate(detections_msg.detections):
             # 객체 이미지 위치 잡고 그걸 inference로 보낸다
-            x1 = int(np.clip((detection.bbox.center.position.x - detection.bbox.size.x / 2), 0, img_msg.width)) # img_msg.width = 640 # ? 설정 시: 640 - 1
-            y1 = int(np.clip((detection.bbox.center.position.y - detection.bbox.size.y / 2), 0, img_msg.height)) # img_msg.height = 480
-            x2 = int(np.clip((detection.bbox.center.position.x + detection.bbox.size.x / 2), 0, img_msg.width))
-            y2 = int(np.clip((detection.bbox.center.position.y + detection.bbox.size.y / 2), 0, img_msg.height))
+            x1 = int(np.clip((detection.bbox.center.position.x - detection.bbox.size.x / 2), 0, img_msg.width - 1)) # img_msg.width = 640 # ? 설정 시: 640 - 1
+            y1 = int(np.clip((detection.bbox.center.position.y - detection.bbox.size.y / 2), 0, img_msg.height - 1)) # img_msg.height = 480
+            x2 = int(np.clip((detection.bbox.center.position.x + detection.bbox.size.x / 2), 0, img_msg.width - 1))
+            y2 = int(np.clip((detection.bbox.center.position.y + detection.bbox.size.y / 2), 0, img_msg.height - 1))
 
             detection.bboxyolo.leftup = [x1, y1]
             detection.bboxyolo.rightbottom = [x2, y2]
