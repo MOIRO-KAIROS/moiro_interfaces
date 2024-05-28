@@ -21,9 +21,9 @@ import numpy as np
 import sys
 import os
 
-sys.path.append(os.path.join(os.path.expanduser("~"), "moiro_ws/src/moiro_vision/adaface/adaface/script"))
+sys.path.append(os.path.join(os.path.expanduser("~"), "moiro_ws/src/moiro_vision/adaface_ros/adaface_ros/script"))
 
-from adaface.script.adaface  import AdaFace
+from adaface_ros.script.adaface  import AdaFace
 
 '''
 This Node subscribes datas from ~yolo/tracking_node~, publish data to ~yolo/debug_node~

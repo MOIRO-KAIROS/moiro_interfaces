@@ -48,7 +48,7 @@ def generate_launch_description():
 
     # Node: face_recognition
     face_recognition_node = Node(
-        package="adaface",
+        package="adaface_ros",
         executable="face_recognition",
         name="face_recognition",
         namespace=LaunchConfiguration("namespace"),
@@ -71,7 +71,7 @@ def generate_launch_description():
 
     # Node: video_publisher
     video_publisher_node = Node(
-        package="adaface",
+        package="adaface_ros",
         executable="video_publisher",
         name="video_publisher",
         namespace=LaunchConfiguration("namespace"),
@@ -83,7 +83,7 @@ def generate_launch_description():
     )
 
     world_node_cmd = Node(
-        package="adaface",
+        package="adaface_ros",
         executable="world_node",
         name="world_node",
         namespace=LaunchConfiguration("namespace"),

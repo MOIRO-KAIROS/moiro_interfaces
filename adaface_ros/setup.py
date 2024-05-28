@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 from glob import glob
 import os
 
-package_name = 'adaface'
+package_name = 'adaface_ros'
 
 setup(
     name=package_name,
@@ -26,9 +26,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-          'face_recognition = adaface.adaface_ros2:main',
-          'video_publisher= adaface.video_publisher:main',
-          'world_node = adaface.world_node:main',
+          'face_recognition = adaface_ros.adaface_ros2:main',
+          'video_publisher= adaface_ros.video_publisher:main',
+          'world_node = adaface_ros.world_node:main',
         ],
     },
 )
