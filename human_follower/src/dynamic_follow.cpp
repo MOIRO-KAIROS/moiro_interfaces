@@ -4,8 +4,9 @@
 #include <moiro_interfaces/srv/target_pose.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 
-#define R_VEL   0.3         // rotate velocity
-#define F_VEL   0.1         // forward velocity
+#define R_VEL   0.05         // rotate velocity
+#define F_VEL   0.05         // forward velocity
+#define MAX_DEPTH   1.5
 // #define HEIGHT  480
 // #define WIDTH   640
 
@@ -85,7 +86,7 @@ private:
             velOutput.angular.z = 0;
         
         // 로봇의 전진/후진 제어: x 값을 사용하여 특정 거리 유지
-        if (person_x > 0.5) {
+        if (person_x > MAX_DEPTH) {
             RCLCPP_INFO(this->get_logger(), "FORWARD");
             velOutput.linear.x = F_VEL;
         } else {
@@ -93,7 +94,7 @@ private:
             velOutput.linear.x = 0;
         }
         
-        RCLCPP_INFO(this->get_logger(), "linear - x : %f  angular - z: %f ", velOutput.linear.x, velOutput.angular.z );
+        // RCLCPP_INFO(this->get_logger(), "linear - x : %f  angular - z: %f ", velOutput.linear.x, velOutput.angular.z );
         pub_->publish(velOutput);
     }
 
