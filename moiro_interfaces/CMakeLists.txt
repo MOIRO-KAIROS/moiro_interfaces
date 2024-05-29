@@ -29,9 +29,12 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DetectionInfo.msg"
   "msg/BBoxYolo.msg"
   "msg/FaceBox2D.msg"
+  "msg/SensorState.msg"
   "srv/Person.srv"
   "srv/TargetPose.srv"
   "srv/TargetDepth.srv"
+  "srv/Sound.srv"
+  "action/Patrol.action"
   DEPENDENCIES std_msgs geometry_msgs
 )
 ament_export_dependencies(rosidl_default_runtime)
